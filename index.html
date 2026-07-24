@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>5-Agent Groq Parallel Team</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans">
+
+  <!-- Header -->
+  <header class="border-b border-slate-800 bg-slate-950/50 backdrop-blur px-6 py-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <span class="text-2xl">⚡</span>
+        <h1 class="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
+          5-Agent Parallel AI Team (Groq Powered)
+        </h1>
+      </div>
+      <span class="text-xs font-mono bg-emerald-950 text-emerald-300 border border-emerald-800 px-3 py-1 rounded-full">
+        API Keys Embedded
+      </span>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
+
+    <!-- Prompt Input Section -->
+    <section class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5 shadow-lg space-y-4">
+      <label for="userPrompt" class="block text-sm font-semibold text-slate-300">
+        Enter Project Request for the 5-Agent Team
+      </label>
+      <textarea id="userPrompt" rows="3" 
+                placeholder="e.g., Build a real-time multiplayer leaderboards backend with WebSocket sync and cheat protection..." 
+                class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm focus:outline-none focus:border-blue-500 transition resize-none"></textarea>
+      
+      <button id="runBtn" onclick="executeAgentTeam()" 
+              class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold py-3 rounded-lg transition duration-200 flex items-center justify-center space-x-2 shadow-md">
+        <span>🚀 Launch 5 Agents in Parallel</span>
+      </button>
+    </section>
+
+    <!-- Live Status Grid (5 Parallel Agents) -->
+    <section class="grid grid-cols-1 md:grid-cols-5 gap-3">
+      
+      <!-- Agent 1: Tech Lead -->
+      <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-3 flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-2">
+          <span class="font-bold text-xs text-blue-400">🛠️ Tech Lead</span>
+          <span id="status-agent1" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-400 font-mono">Idle</span>
+        </div>
+        <div id="output-agent1" class="text-[11px] text-slate-400 h-36 overflow-y-auto font-mono bg-slate-950/40 p-2 rounded border border-slate-800">
+          Awaiting execution...
+        </div>
+      </div>
+
+      <!-- Agent 2: UX & Product -->
+      <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-3 flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-2">
+          <span class="font-bold text-xs text-emerald-400">🎨 UX & Product</span>
+          <span id="status-agent2" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-400 font-mono">Idle</span>
+        </div>
+        <div id="output-agent2" class="text-[11px] text-slate-400 h-36 overflow-y-auto font-mono bg-slate-950/40 p-2 rounded border border-slate-800">
+          Awaiting execution...
+        </div>
+      </div>
+
+      <!-- Agent 3: Security Specialist -->
+      <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-3 flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-2">
+          <span class="font-bold text-xs text-amber-400">🛡️ Security</span>
+          <span id="status-agent3" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-400 font-mono">Idle</span>
+        </div>
+        <div id="output-agent3" class="text-[11px] text-slate-400 h-36 overflow-y-auto font-mono bg-slate-950/40 p-2 rounded border border-slate-800">
+          Awaiting execution...
+        </div>
+      </div>
+
+      <!-- Agent 4: Performance & Scale -->
+      <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-3 flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-2">
+          <span class="font-bold text-xs text-purple-400">⚡ Scale & Perf</span>
+          <span id="status-agent4" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-400 font-mono">Idle</span>
+        </div>
+        <div id="output-agent4" class="text-[11px] text-slate-400 h-36 overflow-y-auto font-mono bg-slate-950/40 p-2 rounded border border-slate-800">
+          Awaiting execution...
+        </div>
+      </div>
+
+      <!-- Agent 5: QA & Edge Cases -->
+      <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-3 flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-2">
+          <span class="font-bold text-xs text-rose-400">🧪 QA & Testing</span>
+          <span id="status-agent5" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-400 font-mono">Idle</span>
+        </div>
+        <div id="output-agent5" class="text-[11px] text-slate-400 h-36 overflow-y-auto font-mono bg-slate-950/40 p-2 rounded border border-slate-800">
+          Awaiting execution...
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Final Synthesized Output -->
+    <section class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-6 shadow-xl space-y-3">
+      <div class="flex items-center justify-between">
+        <h2 class="text-md font-bold text-slate-200 flex items-center space-x-2">
+          <span>🧠 Master Synthesized Output</span>
+        </h2>
+        <span id="synthesis-status" class="text-xs text-slate-400 font-mono">Idle</span>
+      </div>
+      <div id="finalOutput" class="bg-slate-950 border border-slate-800 rounded-lg p-5 text-sm text-slate-300 leading-relaxed min-h-[180px] whitespace-pre-wrap font-sans">
+        The master synthesized output from all 5 agents will be generated here...
+      </div>
+    </section>
+
+  </main>
+
+  <!-- JavaScript Multi-Agent Orchestration Engine -->
+  <script>
+    // ==========================================================
+    // 🔑 PERMANENT HARDCODED GROQ API KEYS POOL
+    // Add 1 to 5 keys. If fewer keys are provided, keys auto-reuse.
+    // ==========================================================
+    const PERMANENT_GROQ_KEYS = [
+      "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",
+      "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",
+      "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",
+      "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",
+      "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",
+    ];
+
+    // Single Groq API Caller
+    async function callGroqAgent({ name, systemPrompt, userPrompt, apiKey, statusEl, outputEl }) {
+      if (statusEl) {
+        statusEl.textContent = 'Running...';
+        statusEl.className = 'text-[10px] px-1.5 py-0.5 rounded bg-blue-900/60 text-blue-300 font-mono animate-pulse';
+      }
+
+      try {
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${apiKey}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model: "llama-3.3-70b-versatile",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt }
+            ],
+            temperature: 0.7
+          })
+        });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.error?.message || `HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        const content = data.choices[0].message.content;
+
+        if (statusEl) {
+          statusEl.textContent = 'Done';
+          statusEl.className = 'text-[10px] px-1.5 py-0.5 rounded bg-emerald-900/60 text-emerald-300 font-mono';
+        }
+        if (outputEl) {
+          outputEl.textContent = content;
+        }
+
+        return { agentName: name, content: content };
+
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = 'Error';
+          statusEl.className = 'text-[10px] px-1.5 py-0.5 rounded bg-rose-900/60 text-rose-300 font-mono';
+        }
+        if (outputEl) {
+          outputEl.textContent = `Error: ${err.message}`;
+        }
+        throw err;
+      }
+    }
+
+    // Main Orchestrator
+    async function executeAgentTeam() {
+      const prompt = document.getElementById('userPrompt').value.trim();
+      const runBtn = document.getElementById('runBtn');
+      const finalOutput = document.getElementById('finalOutput');
+      const synthStatus = document.getElementById('synthesis-status');
+
+      if (!prompt) {
+        alert('Please enter a request prompt.');
+        return;
+      }
+
+      // Ensure valid key fallback
+      const validKey = PERMANENT_GROQ_KEYS.find(k => k && !k.includes("YOUR_KEY")) || PERMANENT_GROQ_KEYS[0];
+      if (!validKey || validKey.includes("YOUR_KEY")) {
+        alert('Please open the index.html file and set your permanent Groq API key(s) in the PERMANENT_GROQ_KEYS array!');
+        return;
+      }
+
+      // Disable button during execution
+      runBtn.disabled = true;
+      runBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      finalOutput.textContent = "Executing 5 agents in parallel...";
+      synthStatus.textContent = "Waiting for parallel agents...";
+
+      // Key assignment logic
+      const keys = [
+        PERMANENT_GROQ_KEYS[0] || validKey,
+        PERMANENT_GROQ_KEYS[1] || validKey,
+        PERMANENT_GROQ_KEYS[2] || validKey,
+        PERMANENT_GROQ_KEYS[3] || validKey,
+        PERMANENT_GROQ_KEYS[4] || validKey
+      ];
+
+      // Define 5 specialized agents
+      const agentConfigs = [
+        {
+          name: "Technical Lead",
+          apiKey: keys[0],
+          systemPrompt: " You are a Technical Lead. Provide system architecture, key stack choices, and concrete code structure.",
+          statusEl: document.getElementById('status-agent1'),
+          outputEl: document.getElementById('output-agent1')
+        },
+        {
+          name: "UX & Product",
+          apiKey: keys[1],
+          systemPrompt: " You are a Product & UX Strategist. Focus on user workflows, interface design, ease of use, and feature priorities.",
+          statusEl: document.getElementById('status-agent2'),
+          outputEl: document.getElementById('output-agent2')
+        },
+        {
+          name: "Security Specialist",
+          apiKey: keys[2],
+          systemPrompt: " You are a Security Engineer. Identify security risks, authentication strategy, rate limits, and abuse prevention.",
+          statusEl: document.getElementById('status-agent3'),
+          outputEl: document.getElementById('output-agent3')
+        },
+        {
+          name: "Performance & Scale",
+          apiKey: keys[3],
+          systemPrompt: " You are a Performance Engineer. Provide strategies for low latency, caching, database indexing, and handling high load.",
+          statusEl: document.getElementById('status-agent4'),
+          outputEl: document.getElementById('output-agent4')
+        },
+        {
+          name: "QA & Edge Cases",
+          apiKey: keys[4],
+          systemPrompt: " You are a QA Lead. Uncover edge cases, unexpected user inputs, error handling scenarios, and testing procedures.",
+          statusEl: document.getElementById('status-agent5'),
+          outputEl: document.getElementById('output-agent5')
+        }
+      ];
+
+      try {
+        const startTime = Date.now();
+
+        // 1. FIRE ALL 5 AGENTS IN PARALLEL
+        const agentPromises = agentConfigs.map(cfg =>
+          callGroqAgent({ ...cfg, userPrompt: prompt })
+        );
+
+        const results = await Promise.all(agentPromises);
+        const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
+
+        // 2. SYNTHESIZE ALL 5 OUTPUTS
+        synthStatus.textContent = `All 5 tasks complete (${elapsedTime}s). Synthesizing...`;
+        synthStatus.className = "text-xs text-blue-400 font-mono animate-pulse";
+
+        const aggregatedNotes = results
+          .map(res => `### ${res.agentName}:\n${res.content}`)
+          .join('\n\n---\n\n');
+
+        const synthesisPrompt = `
+You are the Executive Orchestrator of an AI Engineering Team.
+Below are analyses from 5 specialized agents (Tech Lead, UX, Security, Performance, QA):
+
+Original User Request:
+"${prompt}"
+
+Agent Reports:
+${aggregatedNotes}
+
+Task:
+Synthesize these 5 distinct reports into a clean, comprehensive, action-oriented master blueprint.
+Structure with sections:
+1. Executive Summary & Architecture
+2. UX & Core User Flow
+3. Security & Safety Guards
+4. Performance & Scale Guidelines
+5. Edge Cases & Testing Protocol
+`;
+
+        const synthResult = await callGroqAgent({
+          name: "Master Synthesizer",
+          systemPrompt: "You weave 5 specialized engineering reports into a master plan.",
+          userPrompt: synthesisPrompt,
+          apiKey: keys[0],
+          statusEl: null,
+          outputEl: null
+        });
+
+        finalOutput.textContent = synthResult.content;
+        synthStatus.textContent = "Done";
+        synthStatus.className = "text-xs text-emerald-400 font-mono";
+
+      } catch (err) {
+        finalOutput.textContent = `Execution failed: ${err.message}`;
+        synthStatus.textContent = "Error";
+        synthStatus.className = "text-xs text-rose-400 font-mono";
+      } finally {
+        runBtn.disabled = false;
+        runBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+    }
+  </script>
+</body>
+</html>
