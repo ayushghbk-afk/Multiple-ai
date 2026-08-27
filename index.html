@@ -35,9 +35,12 @@
     }
   </script>
 
-  <!-- jsPDF with fallback CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- jsPDF: use the pinned local build first, then public CDNs as fallbacks -->
+  <script src="./vendor/jspdf.umd.min.js"></script>
   <script>
+    if (!window.jspdf) {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"><\/script>');
+    }
     if (!window.jspdf) {
       document.write('<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"><\/script>');
     }
@@ -251,10 +254,10 @@
               <h2 class="text-2xl font-bold bg-gradient-to-r from-white via-indigo-200 to-brand-300 bg-clip-text text-transparent">
                 Professional PDF Studio
               </h2>
-              <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono">Bug-Free Engine</span>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono">Reliable Renderer</span>
             </div>
             <p class="text-xs sm:text-sm text-slate-400 mt-1">
-              Generate publication-grade PDF documents with multi-page table formatting, bulletproofing against WebP/CORS image crashes, custom branding, and instant downloads.
+              Generate polished PDFs with reliable pagination, wrapped tables, safe image embedding, custom branding, and instant downloads.
             </p>
           </div>
 
@@ -342,7 +345,7 @@
               <button onclick="insertPdfTableSample()" class="px-2.5 py-1 rounded bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-300">📊 Table</button>
               <button onclick="insertPdfMarkdown('---')" class="px-2.5 py-1 rounded bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-300">— Divider</button>
               
-              <button onclick="enhancePdfWithAi()" class="ml-auto px-3 py-1 rounded-lg bg-indigo-900/50 hover:bg-indigo-800/50 border border-indigo-700/50 text-indigo-300 font-semibold flex items-center gap-1 transition">
+              <button onclick="enhancePdfWithAi(this)" class="ml-auto px-3 py-1 rounded-lg bg-indigo-900/50 hover:bg-indigo-800/50 border border-indigo-700/50 text-indigo-300 font-semibold flex items-center gap-1 transition">
                 <span>🪄 AI Enhance</span>
               </button>
             </div>
@@ -423,10 +426,10 @@
               <h2 class="text-2xl font-bold bg-gradient-to-r from-white via-pink-200 to-rose-400 bg-clip-text text-transparent">
                 Advanced AI Image Studio
               </h2>
-              <span class="text-xs px-2 py-0.5 rounded-full bg-pink-950 text-pink-300 border border-pink-800 font-mono">Flux & SDXL Turbo</span>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-pink-950 text-pink-300 border border-pink-800 font-mono">Flux & Turbo</span>
             </div>
             <p class="text-xs sm:text-sm text-slate-400 mt-1">
-              Photorealistic 8K, cinematic lighting, 12+ artistic presets, instant AI prompt enhancement, aspect ratio control, and seamless 1-click export directly to PDF Studio.
+              Create consistent, high-quality artwork with prompt polishing, 12+ styles, reliable loading states, aspect ratio control, variation seeds, and one-click PDF export.
             </p>
           </div>
 
@@ -450,12 +453,19 @@
                 <span>Prompt Description</span>
                 <span class="text-slate-500 text-[11px]">(Describe the scene, subject, lighting, mood)</span>
               </label>
-              <button onclick="enhancePromptWithGroq()" id="enhancePromptBtn" class="px-2.5 py-1 rounded-lg bg-gradient-to-r from-brand-600/30 to-pink-600/30 hover:from-brand-600/40 hover:to-pink-600/40 border border-pink-500/40 text-pink-300 font-semibold flex items-center gap-1.5 transition text-xs shadow-sm">
+              <button onclick="enhancePromptWithGroq(this)" id="enhancePromptBtn" class="px-2.5 py-1 rounded-lg bg-gradient-to-r from-brand-600/30 to-pink-600/30 hover:from-brand-600/40 hover:to-pink-600/40 border border-pink-500/40 text-pink-300 font-semibold flex items-center gap-1.5 transition text-xs shadow-sm">
                 <span class="animate-spin hidden" id="enhanceSpinner">⏳</span>
                 <span>✨ Polish with AI</span>
               </button>
             </div>
-            <textarea id="imageStudioPrompt" rows="3" placeholder="e.g., A majestic snow leopard perched on an icy Himalayan peak at golden hour, backlit rim lighting, ultra sharp 8k resolution..." class="w-full bg-surface-950 border border-slate-700 rounded-xl p-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-pink-500 transition resize-none"></textarea>
+            <textarea id="imageStudioPrompt" rows="3" maxlength="1200" oninput="updateImagePromptQuality()" placeholder="e.g., A majestic snow leopard perched on an icy Himalayan peak at golden hour, backlit rim lighting, ultra sharp 8k resolution..." class="w-full bg-surface-950 border border-slate-700 rounded-xl p-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-pink-500 transition resize-none"></textarea>
+            <div class="flex items-center gap-3 text-[11px] text-slate-500">
+              <div class="h-1.5 flex-1 rounded-full bg-surface-800 overflow-hidden" aria-label="Prompt quality">
+                <div id="imagePromptQualityBar" class="h-full w-0 rounded-full bg-pink-500 transition-all duration-300"></div>
+              </div>
+              <span id="imagePromptQuality" class="whitespace-nowrap">Add a subject to begin</span>
+              <span id="imagePromptStats" class="font-mono whitespace-nowrap">0 / 1200</span>
+            </div>
             
             <!-- Prompt Starters Chips -->
             <div class="flex items-center gap-2 overflow-x-auto pb-1 text-xs text-slate-400">
@@ -539,8 +549,7 @@
               <label class="block text-xs font-semibold text-slate-400 mb-1.5">AI Engine & Quality</label>
               <select id="imageStudioModel" class="w-full bg-surface-950 border border-slate-700 rounded-lg px-3 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-pink-500">
                 <option value="flux" selected>Flux (High Fidelity & Detail)</option>
-                <option value="flux-realism">Flux Realism (Photorealistic Camera)</option>
-                <option value="turbo">SDXL Turbo (Instant Speed)</option>
+                <option value="turbo">Turbo (Fast previews)</option>
               </select>
               <div class="mt-2 flex items-center justify-between">
                 <span class="text-[11px] text-slate-400">Enhance details</span>
@@ -588,7 +597,7 @@
           </div>
 
           <!-- Grid of Generated Image Cards -->
-          <div id="imageResultsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div id="imageResultsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" aria-live="polite">
             <!-- Populated with generated images -->
             <div class="col-span-full py-16 text-center text-slate-500 space-y-3 bg-surface-900/40 border border-dashed border-slate-800 rounded-2xl">
               <div class="text-4xl">🎨</div>
@@ -617,7 +626,7 @@
                 5-Agent Groq Parallel Swarm
               </h2>
               <span class="text-xs font-mono bg-emerald-950 text-emerald-300 border border-emerald-800 px-2.5 py-0.5 rounded-full">
-                Groq Pool Active
+                Groq / BYO Key
               </span>
             </div>
             <p class="text-xs sm:text-sm text-slate-400 mt-1">
@@ -822,9 +831,9 @@
 
       <div class="space-y-4 text-xs">
         <div>
-          <label class="block font-semibold text-slate-300 mb-1">Custom Groq API Key (Optional)</label>
+          <label class="block font-semibold text-slate-300 mb-1">Groq API Key (Optional)</label>
           <input type="password" id="settingsCustomGroqKey" placeholder="gsk_..." class="w-full bg-surface-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 font-mono text-xs focus:outline-none focus:border-brand-500" />
-          <div class="text-[11px] text-slate-500 mt-1">Leave blank to use the high-performance permanent Groq key pool automatically.</div>
+          <div class="text-[11px] text-slate-500 mt-1">Stored only in this browser. PDF and image generation do not need a Groq key.</div>
         </div>
 
         <div class="flex items-center justify-between pt-2 border-t border-slate-800">
@@ -908,13 +917,12 @@
     // ==============================================================
     // 1. CONFIGURATION & CONSTANTS
     // ==============================================================
-    const PERMANENT_GROQ_KEYS = [
-      "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",
-      "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",
-      "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",
-      "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",
-      "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",
-    ];
+    // Never commit provider secrets to a public HTML file. A deployment can optionally
+    // inject window.MULTIPLE_AI_CONFIG.groqKeys before this script, or users can add one
+    // locally in Settings. PDF and image features do not require a Groq key.
+    const PERMANENT_GROQ_KEYS = Array.isArray(window.MULTIPLE_AI_CONFIG?.groqKeys)
+      ? window.MULTIPLE_AI_CONFIG.groqKeys.filter(key => typeof key === "string" && key.trim())
+      : [];
     let currentKeyIndex = 0;
 
     const SUPABASE_URL = "https://mxhmcapcmeatnmwiwnri.supabase.co";
@@ -941,6 +949,9 @@
     let studioAttachedImages = [];
     let lastStudioPdfBlob = null;
     let lastStudioPdfFilename = 'document.pdf';
+    let pdfBuildInProgress = false;
+    let currentImageResults = [];
+    let imageGenerationToken = 0;
 
     // Settings
     let appSettings = {
@@ -1047,16 +1058,21 @@
       if (appSettings.customGroqKey && appSettings.customGroqKey.trim().length > 10) {
         return appSettings.customGroqKey.trim();
       }
+      if (PERMANENT_GROQ_KEYS.length === 0) return "";
       return PERMANENT_GROQ_KEYS[currentKeyIndex % PERMANENT_GROQ_KEYS.length];
     }
 
     function rotateGroqKey() {
+      if (PERMANENT_GROQ_KEYS.length < 2) return;
       currentKeyIndex = (currentKeyIndex + 1) % PERMANENT_GROQ_KEYS.length;
-      console.log(`Rotated to Groq Key Pool Index: ${currentKeyIndex}`);
+      console.log(`Rotated to Groq key index: ${currentKeyIndex}`);
     }
 
     async function callGroqAPI({ messages, tools = null, temperature = 0.7, max_tokens = 4096, model = "llama-3.3-70b-versatile" }) {
-      const maxRetries = PERMANENT_GROQ_KEYS.length;
+      if (!getActiveGroqKey()) {
+        throw new Error("Add a Groq API key in Settings to use AI text features. PDF and image generation work without it.");
+      }
+      const maxRetries = Math.max(PERMANENT_GROQ_KEYS.length, 1);
       let lastError = null;
 
       for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -1110,84 +1126,327 @@
     // ==============================================================
     // 4. IMAGE ENGINE & POLLINATIONS ENHANCER
     // ==============================================================
-    async function generateImageUrls({ prompt, count = 1, dimensions = '1024x1024', style = 'photorealistic', model = 'flux', enhance = true, negativePrompt = '', customSeed = null }) {
-      const safeCount = Math.min(Math.max(Number(count) || 1, 1), 4);
-      let [width, height] = dimensions.split('x').map(Number);
-      if (!width || !height) { width = 1024; height = 1024; }
+    const IMAGE_ALLOWED_MODELS = new Set(["flux", "turbo"]);
+    const IMAGE_MAX_PROMPT_LENGTH = 1800;
 
-      // Find style definition
-      const preset = IMAGE_STYLE_PRESETS.find(p => p.id === style) || IMAGE_STYLE_PRESETS[0];
-      let fullPrompt = prompt.trim();
-      if (preset && preset.suffix) {
-        fullPrompt += preset.suffix;
-      }
-      if (negativePrompt && negativePrompt.trim()) {
-        fullPrompt += ` | avoid: ${negativePrompt.trim()}`;
-      }
-
-      const results = [];
-      for (let i = 0; i < safeCount; i++) {
-        const seed = customSeed ? (Number(customSeed) + i) : (Math.floor(Math.random() * 9000000) + 1000000);
-        const encoded = encodeURIComponent(fullPrompt);
-        
-        let url = `https://image.pollinations.ai/prompt/${encoded}?width=${width}&height=${height}&seed=${seed}&nologo=true`;
-        if (enhance) url += '&enhance=true';
-        if (model && model !== 'flux') url += `&model=${model}`;
-
-        results.push({
-          url,
-          prompt,
-          fullPrompt,
-          style: preset.name,
-          dimensions: `${width}x${height}`,
-          seed,
-          model,
-          timestamp: Date.now()
-        });
-      }
-
-      return results;
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
     }
 
-    // Canvas image converter to make images 100% safe for jsPDF without crashing on WebP/AVIF
-    async function prepareImageForPdf(imageUrl) {
-      return new Promise((resolve) => {
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.onload = () => {
-          try {
-            const canvas = document.createElement("canvas");
-            canvas.width = img.naturalWidth || img.width || 800;
-            canvas.height = img.naturalHeight || img.height || 600;
-            const ctx = canvas.getContext("2d");
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            const jpegDataUrl = canvas.toDataURL("image/jpeg", 0.92);
-            resolve({
-              dataUrl: jpegDataUrl,
-              width: canvas.width,
-              height: canvas.height,
-              aspectRatio: canvas.width / canvas.height
-            });
-          } catch (err) {
-            console.warn("Could not draw image to canvas (CORS/taint):", err);
-            resolve(null);
-          }
+    function parseImageDimensions(dimensions) {
+      const match = String(dimensions || "").match(/^(\d{3,4})x(\d{3,4})$/);
+      let width = match ? Number(match[1]) : 1024;
+      let height = match ? Number(match[2]) : 1024;
+
+      // Keep requests inside the dimensions supported by the public image endpoint.
+      width = Math.min(Math.max(width, 512), 1536);
+      height = Math.min(Math.max(height, 512), 1536);
+      return { width, height, value: `${width}x${height}` };
+    }
+
+    function resolveImageModel(model) {
+      const normalized = String(model || "flux").trim().toLowerCase();
+      return IMAGE_ALLOWED_MODELS.has(normalized) ? normalized : "flux";
+    }
+
+    function resolveImagePreset(style) {
+      const requested = String(style || "").trim().toLowerCase();
+      return IMAGE_STYLE_PRESETS.find(preset =>
+        preset.id === requested || preset.name.toLowerCase().includes(requested)
+      ) || IMAGE_STYLE_PRESETS[0];
+    }
+
+    function normalizeImageSeed(seed) {
+      if (seed === null || seed === undefined || String(seed).trim() === "") return null;
+      const parsed = Number(seed);
+      if (!Number.isFinite(parsed)) return null;
+      return Math.abs(Math.trunc(parsed)) % 2147483647;
+    }
+
+    function buildImagePrompt({ prompt, preset, enhance = true, negativePrompt = "" }) {
+      const parts = [String(prompt || "").trim()];
+      const styleText = String(preset?.suffix || "").replace(/^\s*,\s*/, "").trim();
+      if (styleText) parts.push(styleText);
+      if (enhance) {
+        parts.push("strong subject separation, coherent composition, precise details, clean edges, no text or watermark");
+      }
+      if (negativePrompt) parts.push(`avoid ${String(negativePrompt).slice(0, 500)}`);
+      return parts.filter(Boolean).join(", ").slice(0, IMAGE_MAX_PROMPT_LENGTH);
+    }
+
+    function buildImageUrl({ fullPrompt, width, height, seed, model, enhance, negativePrompt }) {
+      const endpoint = `https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}`;
+      const params = new URLSearchParams({
+        width: String(width),
+        height: String(height),
+        seed: String(seed),
+        nologo: "true"
+      });
+      if (enhance) params.set("enhance", "true");
+      if (model && model !== "flux") params.set("model", model);
+      if (negativePrompt) {
+        // Keep this as a first-class parameter; older endpoints simply ignore it.
+        params.set("negative_prompt", negativePrompt.slice(0, 500));
+      }
+      return `${endpoint}?${params.toString()}`;
+    }
+
+    async function generateImageUrls({
+      prompt,
+      count = 1,
+      dimensions = "1024x1024",
+      style = "photorealistic",
+      model = "flux",
+      enhance = true,
+      negativePrompt = "",
+      customSeed = null
+    }) {
+      const cleanPrompt = String(prompt || "").trim();
+      if (!cleanPrompt) throw new Error("An image prompt is required.");
+
+      const safeCount = Math.min(Math.max(Number(count) || 1, 1), 4);
+      const size = parseImageDimensions(dimensions);
+      const preset = resolveImagePreset(style);
+      const safeModel = resolveImageModel(model);
+      const cleanNegativePrompt = String(negativePrompt || "").trim().slice(0, 500);
+      const fullPrompt = buildImagePrompt({ prompt: cleanPrompt, preset, enhance, negativePrompt: cleanNegativePrompt });
+      const suppliedSeed = normalizeImageSeed(customSeed);
+      const baseSeed = suppliedSeed === null
+        ? Math.floor(Math.random() * 2147483000) + 1
+        : suppliedSeed;
+
+      return Array.from({ length: safeCount }, (_, index) => {
+        const seed = (baseSeed + index) % 2147483647;
+        return {
+          id: `image_${Date.now()}_${seed}_${index}`,
+          url: buildImageUrl({
+            fullPrompt,
+            width: size.width,
+            height: size.height,
+            seed,
+            model: safeModel,
+            enhance,
+            negativePrompt: cleanNegativePrompt
+          }),
+          prompt: cleanPrompt,
+          fullPrompt,
+          negativePrompt: cleanNegativePrompt,
+          style: preset.name,
+          styleId: preset.id,
+          dimensions: size.value,
+          width: size.width,
+          height: size.height,
+          seed,
+          model: safeModel,
+          enhance,
+          ready: false,
+          timestamp: Date.now() + index
         };
-        img.onerror = () => {
-          console.warn("Image load failed for PDF embedding:", imageUrl);
-          resolve(null);
-        };
-        // 8 second safety timeout so PDF never hangs
-        setTimeout(() => resolve(null), 8000);
-        img.src = imageUrl;
       });
     }
 
+    function updateImagePromptQuality() {
+      const input = document.getElementById("imageStudioPrompt");
+      const stats = document.getElementById("imagePromptStats");
+      const label = document.getElementById("imagePromptQuality");
+      const bar = document.getElementById("imagePromptQualityBar");
+      if (!input || !stats || !label || !bar) return;
+
+      const text = input.value.trim();
+      const words = text ? text.split(/\s+/).length : 0;
+      const hasSubject = words >= 2;
+      const hasContext = words >= 6;
+      const hasVisualDetail = /\b(light|lighting|color|colour|mood|style|camera|lens|detail|texture|background|foreground|cinematic|realistic)\b/i.test(text);
+      const score = Math.min(100, (hasSubject ? 35 : Math.min(words * 8, 25)) + (hasContext ? 30 : 0) + (hasVisualDetail ? 25 : 0) + (text.length > 140 ? 10 : 0));
+
+      stats.textContent = `${text.length} / 1200`;
+      bar.style.width = `${score}%`;
+      bar.className = `h-full rounded-full transition-all duration-300 ${score >= 75 ? "bg-emerald-500" : score >= 45 ? "bg-amber-400" : "bg-pink-500"}`;
+      label.textContent = !text ? "Add a subject to begin" : score >= 75 ? "Great visual brief" : score >= 45 ? "Add lighting or composition" : "Add subject and setting";
+      label.className = `whitespace-nowrap ${score >= 75 ? "text-emerald-400" : score >= 45 ? "text-amber-300" : "text-slate-500"}`;
+    }
+
+    function loadImageElement(imageElement, url, onState, timeoutMs = 45000) {
+      return new Promise((resolve, reject) => {
+        let settled = false;
+        const timer = window.setTimeout(() => {
+          finish(new Error("The image took too long to respond."));
+        }, timeoutMs);
+
+        function finish(error, metadata = null) {
+          if (settled) return;
+          settled = true;
+          window.clearTimeout(timer);
+          imageElement.onload = null;
+          imageElement.onerror = null;
+          if (error) {
+            if (typeof onState === "function") onState("error", error);
+            reject(error);
+          } else {
+            if (typeof onState === "function") onState("ready", metadata);
+            resolve(metadata || {
+              width: imageElement.naturalWidth,
+              height: imageElement.naturalHeight
+            });
+          }
+        }
+
+        imageElement.onload = () => finish(null, {
+          width: imageElement.naturalWidth || imageElement.width,
+          height: imageElement.naturalHeight || imageElement.height
+        });
+        imageElement.onerror = () => finish(new Error("The image service could not render this variation."));
+        imageElement.src = url;
+
+        if (imageElement.complete && imageElement.naturalWidth) {
+          window.setTimeout(() => finish(null, {
+            width: imageElement.naturalWidth,
+            height: imageElement.naturalHeight
+          }), 0);
+        }
+      });
+    }
+
+    function addImageRetryToken(url) {
+      const separator = String(url).includes("?") ? "&" : "?";
+      return `${url}${separator}retry=${Date.now()}`;
+    }
+
+    // Canvas image converter to make images safe for jsPDF without crashing on WebP/AVIF.
+    // Remote images must opt into CORS; the blob retry handles endpoints that expose CORS
+    // through fetch but return a redirect from their image URL.
+    async function prepareImageForPdf(imageUrl, timeoutMs = 30000) {
+      const source = String(imageUrl || "").trim();
+      if (!source) return null;
+
+      function loadSource(src, crossOrigin = null) {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          let settled = false;
+          const timer = window.setTimeout(() => finish(new Error("Image load timeout")), timeoutMs);
+          function finish(error) {
+            if (settled) return;
+            settled = true;
+            window.clearTimeout(timer);
+            img.onload = null;
+            img.onerror = null;
+            error ? reject(error) : resolve(img);
+          }
+          if (crossOrigin) img.crossOrigin = crossOrigin;
+          img.onload = () => finish(null);
+          img.onerror = () => finish(new Error("Image load failed"));
+          img.src = src;
+        });
+      }
+
+      let image;
+      let temporaryObjectUrl = null;
+      try {
+        const remote = /^https?:\/\//i.test(source);
+        try {
+          image = await loadSource(source, remote ? "anonymous" : null);
+        } catch (directError) {
+          // A second CORS-aware fetch is useful for redirected image providers.
+          if (!remote || typeof fetch !== "function") throw directError;
+          const controller = typeof AbortController === "function" ? new AbortController() : null;
+          const fetchTimer = controller ? window.setTimeout(() => controller.abort(), timeoutMs) : null;
+          try {
+            const response = await fetch(source, {
+              mode: "cors",
+              credentials: "omit",
+              signal: controller ? controller.signal : undefined
+            });
+            if (!response.ok) throw directError;
+            const blob = await response.blob();
+            temporaryObjectUrl = URL.createObjectURL(blob);
+            image = await loadSource(temporaryObjectUrl);
+          } finally {
+            if (fetchTimer) window.clearTimeout(fetchTimer);
+          }
+        }
+
+        const sourceWidth = image.naturalWidth || image.width;
+        const sourceHeight = image.naturalHeight || image.height;
+        if (!sourceWidth || !sourceHeight) return null;
+
+        // Avoid creating a huge canvas for an unexpectedly large upstream image.
+        const maxDimension = 2400;
+        const maxPixels = 12000000;
+        const scale = Math.min(
+          1,
+          maxDimension / Math.max(sourceWidth, sourceHeight),
+          Math.sqrt(maxPixels / (sourceWidth * sourceHeight))
+        );
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(sourceWidth * scale));
+        canvas.height = Math.max(1, Math.round(sourceHeight * scale));
+        const context = canvas.getContext("2d", { alpha: false });
+        if (!context) return null;
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+        return {
+          dataUrl: canvas.toDataURL("image/jpeg", 0.9),
+          width: canvas.width,
+          height: canvas.height,
+          aspectRatio: canvas.width / canvas.height
+        };
+      } catch (error) {
+        console.warn("Could not prepare image for PDF embedding:", error);
+        return null;
+      } finally {
+        if (temporaryObjectUrl) URL.revokeObjectURL(temporaryObjectUrl);
+      }
+    }
+
     // ==============================================================
-    // 5. BULLETPROOF PDF GENERATOR ENGINE (FIXED & UPGRADED)
+    // 5. BULLETPROOF PDF GENERATOR ENGINE
     // ==============================================================
+    const PDF_MAX_IMAGES = 6;
+
+    function pdfSafeText(value) {
+      return String(value ?? "")
+        .replace(/\u00a0/g, " ")
+        .replace(/[\u2018\u2019]/g, "'")
+        .replace(/[\u201c\u201d]/g, '"')
+        .replace(/[\u2013\u2014]/g, "-")
+        .replace(/\u2026/g, "...")
+        .replace(/\u2022/g, "-")
+        .replace(/\u2192/g, "->")
+        .replace(/\u2190/g, "<-")
+        .replace(/\u00d7/g, "x")
+        .replace(/\u2713/g, "OK")
+        .replace(/[^\x09\x0a\x0d\x20-\x7e\xa0-\xff]/g, "?");
+    }
+
+    function pdfInlineText(value) {
+      return pdfSafeText(value)
+        .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
+        .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+        .replace(/`([^`]+)`/g, "$1")
+        .replace(/\*\*(.*?)\*\*/g, "$1")
+        .replace(/__(.*?)__/g, "$1")
+        .replace(/\*([^*]+)\*/g, "$1")
+        .replace(/_([^_]+)_/g, "$1");
+    }
+
+    function safePdfFilename(filename) {
+      let value = String(filename || "document.pdf")
+        .replace(/[\\/:*?"<>|#%]+/g, "_")
+        .replace(/[\u0000-\u001f]/g, "")
+        .trim()
+        .slice(0, 150);
+      if (!value) value = "document.pdf";
+      if (!value.toLowerCase().endsWith(".pdf")) value += ".pdf";
+      return value;
+    }
+
     async function createPdfDocument({
       title = "Document",
       filename = "document.pdf",
@@ -1196,212 +1455,363 @@
       theme = "indigo",
       author = "Multiple AI Studio"
     }) {
-      if (!window.jspdf || !window.jspdf.jsPDF) {
-        throw new Error("jsPDF library failed to load. Please check network connection.");
+      if (!window.jspdf || typeof window.jspdf.jsPDF !== "function") {
+        throw new Error("PDF engine is still loading. Refresh the page and try again.");
       }
 
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF({ orientation: "p", unit: "mm", format: "a4", compress: true });
-
-      const safeTitle = String(title || "Document").trim().slice(0, 200);
-      let safeFilename = String(filename || "document.pdf").replace(/[\\/:*?"<>|#%]+/g, "_").trim();
-      if (!safeFilename.toLowerCase().endsWith(".pdf")) safeFilename += ".pdf";
-
+      const safeTitle = pdfSafeText(title).trim().slice(0, 200) || "Document";
+      const safeAuthor = pdfSafeText(author).trim().slice(0, 100) || "Multiple AI Studio";
+      const safeFilename = safePdfFilename(filename);
       const safeContent = String(content || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
       if (!safeContent) throw new Error("PDF document content cannot be empty.");
 
-      // Theme Palettes
+      if (typeof pdf.setProperties === "function") {
+        pdf.setProperties({
+          title: safeTitle,
+          author: safeAuthor,
+          subject: "Generated document",
+          creator: "Multiple AI Studio"
+        });
+      }
+
       const palettes = {
         indigo: { accent: [99, 102, 241], accent2: [79, 70, 229], dark: [15, 23, 42], text: [30, 41, 59], muted: [100, 116, 139], lightBg: [248, 250, 252], rule: [226, 232, 240] },
         navy: { accent: [14, 116, 144], accent2: [3, 105, 161], dark: [12, 20, 39], text: [15, 23, 42], muted: [100, 116, 139], lightBg: [240, 249, 255], rule: [224, 242, 254] },
         emerald: { accent: [16, 185, 129], accent2: [5, 150, 105], dark: [6, 78, 59], text: [20, 35, 30], muted: [100, 116, 139], lightBg: [236, 253, 245], rule: [209, 250, 229] },
         rose: { accent: [225, 29, 72], accent2: [190, 18, 60], dark: [76, 5, 25], text: [30, 20, 25], muted: [120, 113, 108], lightBg: [255, 241, 242], rule: [254, 205, 211] },
-        slate: { accent: [71, 85, 105], accent2: [51, 65, 85], dark: [15, 23, 42], text: [30, 41, 59], muted: [148, 163, 184], lightBg: [248, 250, 252], rule: [226, 232, 240] }
+        slate: { accent: [71, 85, 105], accent2: [51, 65, 85], dark: [15, 23, 42], text: [30, 41, 59], muted: [100, 116, 139], lightBg: [248, 250, 252], rule: [226, 232, 240] }
       };
       const colors = palettes[theme] || palettes.indigo;
-
-      const pageWidth = pdf.internal.pageSize.getWidth(); // 210mm
-      const pageHeight = pdf.internal.pageSize.getHeight(); // 297mm
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
       const margin = 18;
       const contentWidth = pageWidth - margin * 2;
+      const topContent = 22;
       const bottomLimit = pageHeight - 20;
       let y = 20;
 
       function addNewPage() {
         pdf.addPage();
-        y = 22;
+        y = topContent;
       }
 
       function ensureSpace(requiredHeight) {
-        if (y + requiredHeight > bottomLimit) {
-          addNewPage();
+        const height = Math.max(0, Number(requiredHeight) || 0);
+        if (y + height > bottomLimit) addNewPage();
+      }
+
+      function setTextStyle({ font = "helvetica", style = "normal", size = 10, color = colors.text } = {}) {
+        pdf.setFont(font, style);
+        pdf.setFontSize(size);
+        pdf.setTextColor(...color);
+      }
+
+      function wrappedLines(text, width) {
+        const normalized = pdfInlineText(text).replace(/[ \t]+/g, " ").trim();
+        if (!normalized) return [""];
+        return pdf.splitTextToSize(normalized, width) || [normalized];
+      }
+
+      function drawLines(lines, x, lineHeight, style) {
+        setTextStyle(style);
+        lines.forEach(line => {
+          ensureSpace(lineHeight);
+          setTextStyle(style);
+          pdf.text(pdfSafeText(line), x, y);
+          y += lineHeight;
+        });
+      }
+
+      function drawHeading(text, level) {
+        const config = level === 1
+          ? { size: 15, lineHeight: 7.2, color: colors.accent, space: 17, rule: 35 }
+          : level === 2
+            ? { size: 13, lineHeight: 6.2, color: colors.dark, space: 15, rule: 25 }
+            : { size: 11, lineHeight: 5.4, color: colors.text, space: 12, rule: 0 };
+        const lines = wrappedLines(text, contentWidth);
+        ensureSpace(Math.min(config.space + (lines.length - 1) * config.lineHeight, bottomLimit - topContent));
+        drawLines(lines, margin, config.lineHeight, { font: "helvetica", style: "bold", size: config.size, color: config.color });
+        if (config.rule) {
+          pdf.setDrawColor(...config.color);
+          pdf.setLineWidth(level === 1 ? 0.6 : 0.4);
+          pdf.line(margin, y + 0.5, margin + config.rule, y + 0.5);
+        }
+        y += level === 1 ? 6 : level === 2 ? 5.5 : 4;
+      }
+
+      function drawParagraph(text) {
+        const lines = wrappedLines(text, contentWidth);
+        drawLines(lines, margin, 5.2, { font: "helvetica", style: "normal", size: 10, color: colors.text });
+        y += 2;
+      }
+
+      function drawListItem(text, number = null) {
+        const indent = number === null ? 7 : 9;
+        const lines = wrappedLines(text, contentWidth - indent);
+        lines.forEach((line, index) => {
+          ensureSpace(5.3);
+          setTextStyle({ font: "helvetica", style: index === 0 && number !== null ? "bold" : "normal", size: 10, color: index === 0 && number !== null ? colors.accent : colors.text });
+          if (index === 0) {
+            if (number === null) {
+              pdf.setFillColor(...colors.accent);
+              pdf.circle(margin + 2.5, y - 1.2, 0.9, "F");
+            } else {
+              pdf.text(`${number}.`, margin + 1, y);
+            }
+          }
+          setTextStyle({ font: "helvetica", style: "normal", size: 10, color: colors.text });
+          pdf.text(pdfSafeText(line), margin + indent, y);
+          y += 5.2;
+        });
+        y += 1.2;
+      }
+
+      function drawCallout(text) {
+        const lines = wrappedLines(text, contentWidth - 14);
+        const lineHeight = 5;
+        const maxLinesPerPage = Math.max(1, Math.floor((bottomLimit - topContent - 10) / lineHeight));
+        let offset = 0;
+        while (offset < lines.length) {
+          const chunk = lines.slice(offset, offset + maxLinesPerPage);
+          const boxHeight = Math.max(12, chunk.length * lineHeight + 6);
+          ensureSpace(boxHeight + 4);
+          pdf.setFillColor(...colors.lightBg);
+          pdf.setDrawColor(...colors.rule);
+          pdf.setLineWidth(0.4);
+          pdf.roundedRect(margin, y - 2, contentWidth, boxHeight, 2, 2, "FD");
+          pdf.setFillColor(...colors.accent);
+          pdf.roundedRect(margin, y - 2, 2.5, boxHeight, 1, 1, "F");
+          for (let index = 0; index < chunk.length; index++) {
+            setTextStyle({ font: "helvetica", style: "italic", size: 9.5, color: colors.text });
+            pdf.text(pdfSafeText(chunk[index]), margin + 8, y + 3 + index * lineHeight);
+          }
+          y += boxHeight + 4;
+          offset += chunk.length;
         }
       }
 
-      // 1. Cover / Header Banner Block
-      pdf.setFillColor(...colors.accent);
-      pdf.roundedRect(margin, y, contentWidth, 32, 4, 4, "F");
+      function codeLineWrap(line) {
+        const source = pdfSafeText(line).replace(/\t/g, "  ");
+        if (!source) return [""];
+        return pdf.splitTextToSize(source, contentWidth - 12) || [source];
+      }
 
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(18);
+      function drawCodeBlock(codeLines) {
+        const lines = codeLines.reduce((all, line) => all.concat(codeLineWrap(line)), []);
+        const lineHeight = 4.6;
+        let offset = 0;
+        while (offset < lines.length || (lines.length === 0 && offset === 0)) {
+          const available = Math.max(1, Math.floor((bottomLimit - y - 7) / lineHeight));
+          if (available < 1 || y + 12 > bottomLimit) addNewPage();
+          const chunk = lines.slice(offset, offset + Math.max(1, available));
+          const blockHeight = Math.max(12, chunk.length * lineHeight + 6);
+          ensureSpace(blockHeight + 3);
+          pdf.setFillColor(243, 244, 246);
+          pdf.setDrawColor(209, 213, 219);
+          pdf.setLineWidth(0.3);
+          pdf.roundedRect(margin, y - 2, contentWidth, blockHeight, 2, 2, "FD");
+          for (let index = 0; index < chunk.length; index++) {
+            setTextStyle({ font: "courier", style: "normal", size: 8.5, color: [31, 41, 55] });
+            pdf.text(pdfSafeText(chunk[index]), margin + 6, y + 2.5 + index * lineHeight);
+          }
+          y += blockHeight + 4;
+          offset += chunk.length;
+          if (lines.length === 0) break;
+        }
+      }
+
+      function splitTableCells(rowText) {
+        let value = rowText.trim();
+        if (value.startsWith("|")) value = value.slice(1);
+        if (value.endsWith("|")) value = value.slice(0, -1);
+        const cells = [];
+        let current = "";
+        let escaped = false;
+        for (const character of value) {
+          if (character === "|" && !escaped) {
+            cells.push(current.trim());
+            current = "";
+          } else {
+            current += character;
+          }
+          escaped = character === "\\" && !escaped;
+          if (character !== "\\") escaped = false;
+        }
+        cells.push(current.trim());
+        return cells.map(cell => cell.replace(/\\\|/g, "|"));
+      }
+
+      function isTableDivider(rowText) {
+        return !rowText.trim().replace(/[|\-\s:]/g, "").length;
+      }
+
+      function drawTable(rows) {
+        if (!rows.length) return;
+        const columnCount = Math.max(1, ...rows.map(row => row.length));
+        const columnWidth = contentWidth / columnCount;
+        const lineHeight = 4.2;
+        const rowMetrics = row => {
+          const cells = Array.from({ length: columnCount }, (_, index) => pdfInlineText(row[index] || ""));
+          const cellLines = cells.map(cell => {
+            const result = pdf.splitTextToSize(cell || " ", Math.max(8, columnWidth - 4));
+            return result && result.length ? result : [""];
+          });
+          return { cellLines, height: Math.max(7, Math.max(...cellLines.map(lines => lines.length)) * lineHeight + 3) };
+        };
+
+        const header = rowMetrics(rows[0]);
+        const drawRowSegment = (metrics, offset, lineCount, rowIndex, isHeader) => {
+          const height = Math.max(7, lineCount * lineHeight + 3);
+          if (isHeader) {
+            pdf.setFillColor(...colors.accent);
+            setTextStyle({ font: "helvetica", style: "bold", size: 8.5, color: [255, 255, 255] });
+          } else {
+            pdf.setFillColor(rowIndex % 2 === 0 ? 250 : 243, rowIndex % 2 === 0 ? 250 : 244, rowIndex % 2 === 0 ? 252 : 246);
+            setTextStyle({ font: "helvetica", style: "normal", size: 8.2, color: colors.text });
+          }
+          pdf.rect(margin, y - 1, contentWidth, height, "F");
+          for (let column = 0; column < columnCount; column++) {
+            const x = margin + column * columnWidth;
+            pdf.setDrawColor(...colors.rule);
+            pdf.setLineWidth(0.2);
+            pdf.rect(x, y - 1, columnWidth, height, "D");
+            const lines = metrics.cellLines[column].slice(offset, offset + lineCount);
+            lines.forEach((line, lineIndex) => {
+              setTextStyle({ font: "helvetica", style: isHeader ? "bold" : "normal", size: isHeader ? 8.5 : 8.2, color: isHeader ? [255, 255, 255] : colors.text });
+              pdf.text(pdfSafeText(line), x + 2, y + 3.5 + lineIndex * lineHeight);
+            });
+          }
+          y += height;
+        };
+
+        function drawHeaderIfNeeded() {
+          if (y + header.height > bottomLimit) addNewPage();
+          drawRowSegment(header, 0, Math.max(...header.cellLines.map(lines => lines.length)), 0, true);
+        }
+
+        drawHeaderIfNeeded();
+        for (let rowIndex = 1; rowIndex < rows.length; rowIndex++) {
+          const metrics = rowMetrics(rows[rowIndex]);
+          let offset = 0;
+          const totalLines = Math.max(...metrics.cellLines.map(lines => lines.length));
+          while (offset < totalLines) {
+            const availableLines = Math.max(1, Math.floor((bottomLimit - y - 1) / lineHeight));
+            if (availableLines < 1 || y + Math.max(7, lineHeight + 3) > bottomLimit) {
+              addNewPage();
+              drawHeaderIfNeeded();
+            }
+            const lineCount = Math.min(totalLines - offset, Math.max(1, Math.floor((bottomLimit - y - 1) / lineHeight)));
+            drawRowSegment(metrics, offset, lineCount, rowIndex, false);
+            offset += lineCount;
+            if (offset < totalLines) {
+              addNewPage();
+              drawHeaderIfNeeded();
+            }
+          }
+        }
+        y += 4;
+      }
+
+      // Cover page. The title is wrapped instead of being allowed to overflow the banner.
       const titleLines = pdf.splitTextToSize(safeTitle, contentWidth - 16).slice(0, 2);
-      pdf.text(titleLines, margin + 8, y + 14);
+      const bannerHeight = 34;
+      pdf.setFillColor(...colors.accent);
+      pdf.roundedRect(margin, y, contentWidth, bannerHeight, 4, 4, "F");
+      setTextStyle({ font: "helvetica", style: "bold", size: 18, color: [255, 255, 255] });
+      pdf.text(titleLines, margin + 8, y + 13, { lineHeightFactor: 1.05 });
+      setTextStyle({ font: "helvetica", style: "normal", size: 8, color: [255, 255, 255] });
+      const byline = pdf.splitTextToSize(`${safeAuthor.toUpperCase()} - OFFICIAL AI REPORT`, contentWidth - 16).slice(0, 2);
+      pdf.text(byline, margin + 8, y + 28, { lineHeightFactor: 1.05 });
+      y += bannerHeight + 6;
 
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(8.5);
-      pdf.text(`${author.toUpperCase()}  •  OFFICIAL AI BLUEPRINT & REPORT`, margin + 8, y + 26);
-      y += 38;
-
-      // 2. Metadata Strip
       pdf.setFillColor(...colors.lightBg);
       pdf.setDrawColor(...colors.rule);
       pdf.setLineWidth(0.4);
-      pdf.roundedRect(margin, y, contentWidth, 10, 2, 2, "FD");
+      pdf.roundedRect(margin, y, contentWidth, 11, 2, 2, "FD");
+      setTextStyle({ font: "helvetica", style: "normal", size: 7.8, color: colors.muted });
+      const dateStr = pdfSafeText(new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }));
+      const metadata = pdf.splitTextToSize(`Generated: ${dateStr} - Format: A4 - Engine: Multiple AI Document System`, contentWidth - 12).slice(0, 2);
+      pdf.text(metadata, margin + 6, y + 5.5, { lineHeightFactor: 1.05 });
+      y += 17;
 
-      pdf.setTextColor(...colors.muted);
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(8);
-      const dateStr = new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
-      pdf.text(`Generated: ${dateStr}  •  Format: A4 Verified  •  Engine: Multiple AI Document System`, margin + 6, y + 6.5);
-      y += 16;
-
-      // 3. Physical Image Embedding (Canvas-Powered, WebP-Safe)
-      if (Array.isArray(images) && images.length > 0) {
-        for (const imgItem of images.slice(0, 4)) {
-          if (!imgItem || !imgItem.url) continue;
-          try {
-            const prepared = await prepareImageForPdf(imgItem.url);
-            if (prepared && prepared.dataUrl) {
-              const maxImgWidth = contentWidth;
-              const maxImgHeight = 75;
-              let renderWidth = maxImgWidth;
-              let renderHeight = renderWidth / prepared.aspectRatio;
-
-              if (renderHeight > maxImgHeight) {
-                renderHeight = maxImgHeight;
-                renderWidth = renderHeight * prepared.aspectRatio;
-              }
-
-              ensureSpace(renderHeight + 12);
-              const xPos = margin + (contentWidth - renderWidth) / 2;
-              
-              // Shadow/border box behind image
-              pdf.setDrawColor(...colors.rule);
-              pdf.setLineWidth(0.4);
-              pdf.rect(xPos - 1, y - 1, renderWidth + 2, renderHeight + 2, "D");
-
-              pdf.addImage(prepared.dataUrl, "JPEG", xPos, y, renderWidth, renderHeight, undefined, "FAST");
-              y += renderHeight + 5;
-
-              if (imgItem.alt || imgItem.prompt) {
-                pdf.setTextColor(...colors.muted);
-                pdf.setFontSize(7.5);
-                pdf.setFont("helvetica", "italic");
-                const caption = String(imgItem.alt || imgItem.prompt).slice(0, 100);
-                pdf.text(caption, pageWidth / 2, y, { align: "center" });
-                y += 6;
-              }
-            }
-          } catch (imgErr) {
-            console.warn("Skipping image due to embed warning:", imgErr);
-          }
+      // Prepare images concurrently so a slow image does not block every other image.
+      const imageItems = Array.isArray(images)
+        ? images.filter(item => item && item.url).slice(0, PDF_MAX_IMAGES)
+        : [];
+      const preparedImages = await Promise.all(imageItems.map(async item => ({
+        item,
+        prepared: await prepareImageForPdf(item.url)
+      })));
+      for (const { item, prepared } of preparedImages) {
+        const caption = item.alt || item.prompt || "Attached image";
+        if (!prepared) {
+          ensureSpace(20);
+          pdf.setFillColor(...colors.lightBg);
+          pdf.setDrawColor(...colors.rule);
+          pdf.roundedRect(margin, y, contentWidth, 16, 2, 2, "FD");
+          setTextStyle({ font: "helvetica", style: "italic", size: 8.5, color: colors.muted });
+          pdf.text("Image unavailable for embedding", pageWidth / 2, y + 7, { align: "center" });
+          pdf.text(pdfSafeText(caption).slice(0, 90), pageWidth / 2, y + 11.5, { align: "center" });
+          y += 20;
+          continue;
         }
+
+        const maxWidth = contentWidth;
+        const maxHeight = 76;
+        let renderWidth = maxWidth;
+        let renderHeight = renderWidth / prepared.aspectRatio;
+        if (renderHeight > maxHeight) {
+          renderHeight = maxHeight;
+          renderWidth = renderHeight * prepared.aspectRatio;
+        }
+        const captionLines = wrappedLines(caption, Math.min(contentWidth, renderWidth)).slice(0, 2);
+        const blockHeight = renderHeight + 7 + captionLines.length * 4.2;
+        ensureSpace(blockHeight);
+        const imageX = margin + (contentWidth - renderWidth) / 2;
+        pdf.setDrawColor(...colors.rule);
+        pdf.setLineWidth(0.4);
+        pdf.rect(imageX - 1, y - 1, renderWidth + 2, renderHeight + 2, "D");
+        pdf.addImage(prepared.dataUrl, "JPEG", imageX, y, renderWidth, renderHeight, undefined, "FAST");
+        y += renderHeight + 5;
+        setTextStyle({ font: "helvetica", style: "italic", size: 7.5, color: colors.muted });
+        captionLines.forEach(line => {
+          pdf.text(pdfSafeText(line), pageWidth / 2, y, { align: "center" });
+          y += 4.2;
+        });
+        y += 2;
       }
 
-      // 4. Robust Markdown Parser (Uses safe index iteration - NO array mutation bug!)
-      const lines = safeContent.split(/\n/);
+      const lines = safeContent.split("\n");
       let lineIndex = 0;
-
       while (lineIndex < lines.length) {
         const rawLine = lines[lineIndex];
         const trimmed = rawLine.trim();
-
-        // Empty line
         if (!trimmed) {
+          if (y + 3.5 > bottomLimit) addNewPage();
           y += 3.5;
           lineIndex++;
           continue;
         }
 
-        // Heading 1: # Heading
-        if (trimmed.startsWith("# ")) {
-          ensureSpace(16);
-          pdf.setTextColor(...colors.accent);
-          pdf.setFont("helvetica", "bold");
-          pdf.setFontSize(15);
-          const headingText = trimmed.slice(2).trim();
-          pdf.text(headingText, margin, y);
-          y += 3;
-          // Accent underline
-          pdf.setDrawColor(...colors.accent);
-          pdf.setLineWidth(0.6);
-          pdf.line(margin, y, margin + 35, y);
-          y += 6;
+        if (/^#{1,3}\s+/.test(trimmed)) {
+          const match = trimmed.match(/^(#{1,3})\s+(.+)/);
+          drawHeading(match[2], match[1].length);
           lineIndex++;
           continue;
         }
 
-        // Heading 2: ## Heading
-        if (trimmed.startsWith("## ")) {
-          ensureSpace(14);
-          pdf.setTextColor(...colors.dark);
-          pdf.setFont("helvetica", "bold");
-          pdf.setFontSize(13);
-          const headingText = trimmed.slice(3).trim();
-          pdf.text(headingText, margin, y);
-          y += 2.5;
-          pdf.setDrawColor(...colors.accent2);
-          pdf.setLineWidth(0.4);
-          pdf.line(margin, y, margin + 25, y);
-          y += 5.5;
-          lineIndex++;
-          continue;
-        }
-
-        // Heading 3: ### Heading
-        if (trimmed.startsWith("### ")) {
-          ensureSpace(11);
-          pdf.setTextColor(...colors.text);
-          pdf.setFont("helvetica", "bold");
-          pdf.setFontSize(11);
-          pdf.text(trimmed.slice(4).trim(), margin, y);
-          y += 5;
-          lineIndex++;
-          continue;
-        }
-
-        // Blockquote / Callout: > Text
         if (trimmed.startsWith(">")) {
           const quoteLines = [];
           while (lineIndex < lines.length && lines[lineIndex].trim().startsWith(">")) {
             quoteLines.push(lines[lineIndex].trim().replace(/^>\s?/, ""));
             lineIndex++;
           }
-          const quoteText = quoteLines.join(" ");
-          const wrapped = pdf.splitTextToSize(quoteText, contentWidth - 14);
-          const boxHeight = Math.max(12, wrapped.length * 5 + 6);
-
-          ensureSpace(boxHeight + 4);
-          pdf.setFillColor(...colors.lightBg);
-          pdf.setDrawColor(...colors.rule);
-          pdf.roundedRect(margin, y - 2, contentWidth, boxHeight, 2, 2, "FD");
-
-          // Left accent bar
-          pdf.setFillColor(...colors.accent);
-          pdf.roundedRect(margin, y - 2, 2.5, boxHeight, 1, 1, "F");
-
-          pdf.setTextColor(...colors.text);
-          pdf.setFont("helvetica", "italic");
-          pdf.setFontSize(9.5);
-          for (let i = 0; i < wrapped.length; i++) {
-            pdf.text(wrapped[i], margin + 8, y + 3 + i * 5);
-          }
-          y += boxHeight + 4;
+          drawCallout(quoteLines.join(" "));
           continue;
         }
 
-        // Code Block: ```
         if (trimmed.startsWith("```")) {
           lineIndex++;
           const codeLines = [];
@@ -1409,128 +1819,37 @@
             codeLines.push(lines[lineIndex]);
             lineIndex++;
           }
-          if (lineIndex < lines.length) lineIndex++; // skip ending ```
-
-          pdf.setFont("courier", "normal");
-          pdf.setFontSize(8.5);
-          const codeText = codeLines.join("\n");
-          const wrappedCode = pdf.splitTextToSize(codeText, contentWidth - 12);
-          const blockH = Math.max(12, wrappedCode.length * 4.6 + 6);
-
-          ensureSpace(blockH + 3);
-          pdf.setFillColor(243, 244, 246);
-          pdf.setDrawColor(209, 213, 219);
-          pdf.roundedRect(margin, y - 2, contentWidth, blockH, 2, 2, "FD");
-
-          pdf.setTextColor(31, 41, 55);
-          for (let i = 0; i < wrappedCode.length; i++) {
-            pdf.text(wrappedCode[i], margin + 6, y + 2.5 + i * 4.6);
-          }
-          y += blockH + 4;
+          if (lineIndex < lines.length) lineIndex++;
+          drawCodeBlock(codeLines);
           continue;
         }
 
-        // Markdown Table: | col 1 | col 2 |
         if (trimmed.startsWith("|") && trimmed.endsWith("|")) {
           const tableRows = [];
-          while (lineIndex < lines.length && lines[lineIndex].trim().startsWith("|") && lines[lineIndex].trim().endsWith("|")) {
-            const rowText = lines[lineIndex].trim();
-            // Skip markdown divider line like |---|---|
-            if (!rowText.replace(/[|\-\s:]/g, "").length) {
-              lineIndex++;
-              continue;
-            }
-            const cells = rowText.split("|").slice(1, -1).map(c => c.trim());
-            tableRows.push(cells);
+          while (lineIndex < lines.length) {
+            const tableLine = lines[lineIndex].trim();
+            if (!tableLine.startsWith("|") || !tableLine.endsWith("|")) break;
+            if (!isTableDivider(tableLine)) tableRows.push(splitTableCells(tableLine));
             lineIndex++;
           }
-
-          if (tableRows.length > 0) {
-            const colCount = Math.max(...tableRows.map(r => r.length));
-            const colWidth = contentWidth / colCount;
-            const rowHeight = 7;
-
-            ensureSpace(tableRows.length * rowHeight + 4);
-
-            for (let r = 0; r < tableRows.length; r++) {
-              const row = tableRows[r];
-              const isHeader = (r === 0);
-
-              if (isHeader) {
-                pdf.setFillColor(...colors.accent);
-                pdf.rect(margin, y - 1, contentWidth, rowHeight, "F");
-                pdf.setTextColor(255, 255, 255);
-                pdf.setFont("helvetica", "bold");
-                pdf.setFontSize(9);
-              } else {
-                pdf.setFillColor(r % 2 === 0 ? 250 : 243, r % 2 === 0 ? 250 : 244, r % 2 === 0 ? 252 : 246);
-                pdf.rect(margin, y - 1, contentWidth, rowHeight, "F");
-                pdf.setTextColor(...colors.text);
-                pdf.setFont("helvetica", "normal");
-                pdf.setFontSize(8.5);
-              }
-
-              for (let c = 0; c < colCount; c++) {
-                const cellText = row[c] || "";
-                const cellX = margin + c * colWidth + 2;
-                pdf.text(pdf.splitTextToSize(cellText, colWidth - 4)[0] || "", cellX, y + 4);
-              }
-
-              pdf.setDrawColor(...colors.rule);
-              pdf.setLineWidth(0.2);
-              pdf.rect(margin, y - 1, contentWidth, rowHeight, "D");
-              y += rowHeight;
-            }
-            y += 4;
-            continue;
-          }
+          if (tableRows.length) drawTable(tableRows);
+          continue;
         }
 
-        // Bullet Point: - item or * item
         const bulletMatch = trimmed.match(/^[-*]\s+(.+)/);
         if (bulletMatch) {
-          ensureSpace(7);
-          pdf.setFillColor(...colors.accent);
-          pdf.circle(margin + 2.5, y - 1, 0.9, "F");
-
-          pdf.setTextColor(...colors.text);
-          pdf.setFont("helvetica", "normal");
-          pdf.setFontSize(10);
-          const cleanText = bulletMatch[1].replace(/\*\*/g, "");
-          const wrapped = pdf.splitTextToSize(cleanText, contentWidth - 8);
-          for (let i = 0; i < wrapped.length; i++) {
-            ensureSpace(5.5);
-            pdf.text(wrapped[i], margin + 7, y);
-            y += 5.2;
-          }
+          drawListItem(bulletMatch[1]);
           lineIndex++;
           continue;
         }
 
-        // Numbered List: 1. item
-        const numMatch = trimmed.match(/^(\d+)[.)]\s+(.+)/);
-        if (numMatch) {
-          ensureSpace(7);
-          pdf.setTextColor(...colors.accent);
-          pdf.setFont("helvetica", "bold");
-          pdf.setFontSize(9.5);
-          pdf.text(`${numMatch[1]}.`, margin + 1, y);
-
-          pdf.setTextColor(...colors.text);
-          pdf.setFont("helvetica", "normal");
-          pdf.setFontSize(10);
-          const cleanText = numMatch[2].replace(/\*\*/g, "");
-          const wrapped = pdf.splitTextToSize(cleanText, contentWidth - 9);
-          for (let i = 0; i < wrapped.length; i++) {
-            ensureSpace(5.5);
-            pdf.text(wrapped[i], margin + 8, y);
-            y += 5.2;
-          }
+        const numberMatch = trimmed.match(/^(\d+)[.)]\s+(.+)/);
+        if (numberMatch) {
+          drawListItem(numberMatch[2], numberMatch[1]);
           lineIndex++;
           continue;
         }
 
-        // Divider: ---
         if (trimmed === "---" || trimmed === "***") {
           ensureSpace(6);
           pdf.setDrawColor(...colors.rule);
@@ -1541,71 +1860,45 @@
           continue;
         }
 
-        // Standard Paragraph
-        pdf.setTextColor(...colors.text);
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(10);
-        const cleanParagraph = trimmed.replace(/\*\*/g, "");
-        const wrappedParagraph = pdf.splitTextToSize(cleanParagraph, contentWidth);
-        for (let i = 0; i < wrappedParagraph.length; i++) {
-          ensureSpace(5.5);
-          pdf.text(wrappedParagraph[i], margin, y);
-          y += 5.2;
-        }
-        y += 2;
+        drawParagraph(trimmed);
         lineIndex++;
       }
 
-      // Closing Takeaway Strip
+      // Closing verification strip always starts on a page with enough room.
       ensureSpace(16);
       pdf.setFillColor(...colors.lightBg);
       pdf.setDrawColor(...colors.accent);
       pdf.setLineWidth(0.4);
       pdf.roundedRect(margin, y, contentWidth, 13, 2, 2, "FD");
-      pdf.setTextColor(...colors.text);
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(8.5);
-      pdf.text("DOCUMENT VERIFIED & RENDERED BY MULTIPLE AI STUDIO", margin + 6, y + 6);
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(7.5);
-      pdf.setTextColor(...colors.muted);
-      pdf.text("All architecture components, specs, and synthesized sections are finalized.", margin + 6, y + 10);
+      setTextStyle({ font: "helvetica", style: "bold", size: 8.5, color: colors.text });
+      pdf.text("DOCUMENT VERIFIED AND RENDERED BY MULTIPLE AI STUDIO", margin + 6, y + 6);
+      setTextStyle({ font: "helvetica", style: "normal", size: 7.5, color: colors.muted });
+      pdf.text("Content, pagination, and embedded media were processed locally.", margin + 6, y + 10);
 
-      // Running Headers & Footers on Every Page
       const totalPages = pdf.getNumberOfPages();
-      for (let p = 1; p <= totalPages; p++) {
-        pdf.setPage(p);
-
-        // Header (pages after 1)
-        if (p > 1) {
-          pdf.setTextColor(...colors.muted);
-          pdf.setFont("helvetica", "normal");
-          pdf.setFontSize(7.5);
+      for (let page = 1; page <= totalPages; page++) {
+        pdf.setPage(page);
+        if (page > 1) {
+          setTextStyle({ font: "helvetica", style: "normal", size: 7.5, color: colors.muted });
           pdf.text(safeTitle.slice(0, 60), margin, 12);
           pdf.text("Multiple AI Studio", pageWidth - margin, 12, { align: "right" });
           pdf.setDrawColor(...colors.rule);
           pdf.setLineWidth(0.3);
           pdf.line(margin, 14, pageWidth - margin, 14);
         }
-
-        // Footer
         pdf.setDrawColor(...colors.rule);
         pdf.setLineWidth(0.3);
         pdf.line(margin, pageHeight - 14, pageWidth - margin, pageHeight - 14);
-
-        pdf.setTextColor(...colors.muted);
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(7.5);
-        pdf.text(`Page ${p} of ${totalPages}`, pageWidth - margin, pageHeight - 9, { align: "right" });
-        pdf.text(`Confidential • Generated on ${dateStr}`, margin, pageHeight - 9);
+        setTextStyle({ font: "helvetica", style: "normal", size: 7.5, color: colors.muted });
+        pdf.text(`Page ${page} of ${totalPages}`, pageWidth - margin, pageHeight - 9, { align: "right" });
+        pdf.text(`Confidential - Generated on ${dateStr}`, margin, pageHeight - 9);
       }
 
       const pdfBlob = pdf.output("blob");
       const blobUrl = URL.createObjectURL(pdfBlob);
-
       return {
         blob: pdfBlob,
-        blobUrl: blobUrl,
+        blobUrl,
         filename: safeFilename,
         title: safeTitle,
         pageCount: totalPages,
@@ -1614,15 +1907,29 @@
     }
 
     // Direct Download Helper
+    function safeDownloadFilename(filename, fallback = "download") {
+      const value = String(filename || fallback)
+        .replace(/[\\/:*?"<>|#%]+/g, "_")
+        .replace(/[\u0000-\u001f]/g, "")
+        .trim()
+        .slice(0, 150);
+      return value || fallback;
+    }
+
     function triggerDownloadBlob(blob, filename) {
+      if (!(blob instanceof Blob)) {
+        alert("This file is no longer available in this browser session. Generate it again to download it.");
+        return;
+      }
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = filename;
+      link.download = safeDownloadFilename(filename || "download");
+      link.rel = "noopener";
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(url), 20000);
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 20000);
       playBeep(880, 0.05);
     }
 
@@ -1688,27 +1995,34 @@
     function renderChatSessions() {
       const container = document.getElementById("chatSessionList");
       if (!container) return;
-      container.innerHTML = "";
+      container.replaceChildren();
 
       const list = Object.values(chatSessions).sort((a, b) => b.updatedAt - a.updatedAt);
-      list.forEach(s => {
-        const item = document.createElement("button");
-        const isActive = s.id === currentChatSessionId;
-        item.className = `w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between transition ${isActive ? 'bg-surface-800 text-white font-bold border border-slate-700' : 'text-slate-400 hover:bg-surface-850 hover:text-slate-200'}`;
-        item.onclick = () => {
-          currentChatSessionId = s.id;
+      list.forEach(session => {
+        const row = document.createElement("div");
+        row.className = "w-full flex items-center gap-1 rounded-xl transition";
+        const open = document.createElement("button");
+        const isActive = session.id === currentChatSessionId;
+        open.type = "button";
+        open.className = `flex-1 min-w-0 text-left px-3 py-2 rounded-xl text-xs flex items-center gap-2 transition ${isActive ? 'bg-surface-800 text-white font-bold border border-slate-700' : 'text-slate-400 hover:bg-surface-850 hover:text-slate-200'}`;
+        open.innerHTML = "<span>💬</span>";
+        const sessionTitle = document.createElement("span");
+        sessionTitle.className = "truncate";
+        sessionTitle.textContent = session.title || "Conversation";
+        open.appendChild(sessionTitle);
+        open.addEventListener("click", () => {
+          currentChatSessionId = session.id;
           renderChatSessions();
           renderActiveChat();
-        };
-
-        item.innerHTML = `
-          <div class="truncate flex items-center gap-2">
-            <span>💬</span>
-            <span class="truncate">${s.title || 'Conversation'}</span>
-          </div>
-          <span onclick="event.stopPropagation(); deleteChatSession('${s.id}')" class="text-slate-500 hover:text-rose-400 text-xs px-1">✕</span>
-        `;
-        container.appendChild(item);
+        });
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "text-slate-500 hover:text-rose-400 text-xs px-1.5 py-2";
+        remove.title = "Delete conversation";
+        remove.textContent = "✕";
+        remove.addEventListener("click", () => deleteChatSession(session.id));
+        row.append(open, remove);
+        container.appendChild(row);
       });
     }
 
@@ -1789,53 +2103,103 @@
     function createChatPdfCard(pdfResult) {
       const card = document.createElement("div");
       card.className = "mt-3 bg-surface-950 border border-slate-800 rounded-xl p-3.5 space-y-3";
-      
-      card.innerHTML = `
-        <div class="flex items-center justify-between gap-2">
-          <div class="flex items-center gap-2.5">
-            <div class="w-10 h-10 rounded-lg bg-indigo-950 border border-indigo-700/60 flex items-center justify-center text-xl">📄</div>
-            <div>
-              <div class="font-bold text-xs text-slate-100">${pdfResult.title || 'PDF Document'}</div>
-              <div class="text-[11px] text-slate-400 font-mono">${pdfResult.filename} • ${pdfResult.pageCount || 1} pages • ${pdfResult.sizeKb || 12} KB</div>
-            </div>
-          </div>
-          <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono">Ready</span>
-        </div>
 
-        <div class="flex items-center gap-2 pt-1 border-t border-slate-800/80">
-          <button onclick="triggerDownloadBlob(window._pdfBlobs['${pdfResult.id}'], '${pdfResult.filename}')" class="flex-1 py-1.5 px-3 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow">
-            <span>⬇️ Download PDF</span>
-          </button>
-          <a href="${pdfResult.blobUrl}" target="_blank" class="py-1.5 px-3 rounded-lg bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-300 text-xs font-semibold flex items-center gap-1 transition">
-            <span>🔍 View / Print</span>
-          </a>
-        </div>
-      `;
+      const header = document.createElement("div");
+      header.className = "flex items-center justify-between gap-2";
+      const identity = document.createElement("div");
+      identity.className = "flex items-center gap-2.5";
+      const icon = document.createElement("div");
+      icon.className = "w-10 h-10 rounded-lg bg-indigo-950 border border-indigo-700/60 flex items-center justify-center text-xl";
+      icon.textContent = "📄";
+      const details = document.createElement("div");
+      const title = document.createElement("div");
+      title.className = "font-bold text-xs text-slate-100";
+      title.textContent = pdfResult.title || "PDF Document";
+      const meta = document.createElement("div");
+      meta.className = "text-[11px] text-slate-400 font-mono";
+      meta.textContent = `${pdfResult.filename || "document.pdf"} • ${pdfResult.pageCount || 1} pages • ${pdfResult.sizeKb || 12} KB`;
+      details.append(title, meta);
+      identity.append(icon, details);
+      const ready = document.createElement("span");
+      ready.className = "text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono";
+      ready.textContent = "Ready";
+      header.append(identity, ready);
 
-      // Save blob reference
+      const actions = document.createElement("div");
+      actions.className = "flex items-center gap-2 pt-1 border-t border-slate-800/80";
+      const download = document.createElement("button");
+      download.className = "flex-1 py-1.5 px-3 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow";
+      download.innerHTML = "<span>⬇️ Download PDF</span>";
+      download.addEventListener("click", () => triggerDownloadBlob(
+        (pdfResult.blob instanceof Blob ? pdfResult.blob : null) || (window._pdfBlobs && window._pdfBlobs[pdfResult.id]),
+        pdfResult.filename
+      ));
+      const view = document.createElement("a");
+      view.className = "py-1.5 px-3 rounded-lg bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-300 text-xs font-semibold flex items-center gap-1 transition";
+      view.innerHTML = "<span>🔍 View / Print</span>";
+      view.target = "_blank";
+      view.rel = "noopener";
+      const storedBlob = (pdfResult.blob instanceof Blob ? pdfResult.blob : null) || (window._pdfBlobs && window._pdfBlobs[pdfResult.id]);
+      if (pdfResult.blobUrl && storedBlob) {
+        view.href = pdfResult.blobUrl;
+      } else {
+        view.href = "#";
+        view.addEventListener("click", event => {
+          event.preventDefault();
+          alert("This PDF preview is no longer available. Generate the document again.");
+        });
+      }
+      actions.append(download, view);
+      card.append(header, actions);
+
       if (!window._pdfBlobs) window._pdfBlobs = {};
-      window._pdfBlobs[pdfResult.id] = pdfResult.blob;
-
+      if (pdfResult.id && pdfResult.blob) window._pdfBlobs[pdfResult.id] = pdfResult.blob;
       return card;
     }
 
     function createChatImageGrid(images) {
       const grid = document.createElement("div");
       grid.className = "mt-3 grid grid-cols-2 gap-2";
+      if (!Array.isArray(images)) return grid;
 
-      images.forEach(img => {
+      images.forEach((image, index) => {
+        const prompt = String(image.prompt || "Generated artwork");
         const item = document.createElement("div");
         item.className = "relative group rounded-lg overflow-hidden border border-slate-800 bg-surface-950";
-        item.innerHTML = `
-          <img src="${img.url}" alt="${img.prompt}" class="w-full h-36 object-cover cursor-pointer transition transform group-hover:scale-105" onclick="openLightboxModal('${img.url}', '${img.prompt.replace(/'/g, "\\'")}')" />
-          <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1 transition">
-            <button onclick="downloadDirectImage('${img.url}', '${Date.now()}.jpg')" class="p-1.5 rounded-lg bg-surface-900/90 text-white text-xs" title="Download">⬇️</button>
-            <button onclick="sendImageToPdfStudio('${img.url}', '${img.prompt.replace(/'/g, "\\'")}')" class="p-1.5 rounded-lg bg-indigo-600/90 text-white text-xs" title="Send to PDF">📄</button>
-          </div>
-        `;
+        const imageEl = document.createElement("img");
+        imageEl.alt = prompt;
+        imageEl.loading = "lazy";
+        imageEl.className = "w-full h-36 object-cover cursor-pointer transition transform group-hover:scale-105";
+        imageEl.addEventListener("load", () => {
+          image.ready = true;
+          saveImageToHistory(image);
+        });
+        imageEl.addEventListener("error", () => imageEl.classList.add("opacity-30"));
+        imageEl.addEventListener("click", () => openLightboxModal(image.url, prompt, image.dimensions, image.model, image));
+        imageEl.src = image.url;
+
+        const overlay = document.createElement("div");
+        overlay.className = "absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1 transition pointer-events-none";
+        const download = document.createElement("button");
+        download.className = "p-1.5 rounded-lg bg-surface-900/90 text-white text-xs pointer-events-auto";
+        download.title = "Download";
+        download.textContent = "⬇️";
+        download.addEventListener("click", event => {
+          event.stopPropagation();
+          downloadDirectImage(image.url, `art-${Date.now()}-${index + 1}.jpg`);
+        });
+        const send = document.createElement("button");
+        send.className = "p-1.5 rounded-lg bg-indigo-600/90 text-white text-xs pointer-events-auto";
+        send.title = "Send to PDF";
+        send.textContent = "📄";
+        send.addEventListener("click", event => {
+          event.stopPropagation();
+          sendImageToPdfStudio(image.url, prompt);
+        });
+        overlay.append(download, send);
+        item.append(imageEl, overlay);
         grid.appendChild(item);
       });
-
       return grid;
     }
 
@@ -1909,9 +2273,6 @@ If the user asks for a PDF with images, FIRST call generate_image to get image U
               dimensions: funcArgs.dimensions || "1024x1024",
               style: funcArgs.style || "photorealistic"
             });
-
-            // Save to history
-            imgResults.forEach(r => saveImageToHistory(r));
 
             // Check if user also wanted a PDF
             if (text.toLowerCase().includes("pdf")) {
@@ -1993,8 +2354,6 @@ If the user asks for a PDF with images, FIRST call generate_image to get image U
 
       try {
         const imgResults = await generateImageUrls({ prompt, count: 2, dimensions: '1024x1024' });
-        imgResults.forEach(r => saveImageToHistory(r));
-
         thinkingBubble.querySelector(".whitespace-pre-wrap").textContent = `Generated 2 images for "${prompt}":`;
         thinkingBubble.appendChild(createChatImageGrid(imgResults));
 
@@ -2029,7 +2388,7 @@ If the user asks for a PDF with images, FIRST call generate_image to get image U
 This document proposes the architectural overhaul and multi-modal integration for our modern web platform. By leveraging parallel agent orchestration, client-side PDF document generation, and high-fidelity image synthesis, the system delivers unmatched responsiveness.
 
 ## 2. Core Objectives
-- **Zero Downtime:** Seamless fallback across Groq API keys and resilient image generation pipelines.
+- **Zero Downtime:** Resilient image generation and local PDF rendering with optional Groq-powered writing tools.
 - **Client-Side Rendering:** Eliminate server dependencies for PDF generation using optimized vector math.
 - **Multi-Modal Workflows:** Connect text, imagery, and PDF deliverables in a unified workspace.
 
@@ -2064,7 +2423,7 @@ This specification outlines the technical parameters, fault tolerance mechanisms
 
 ### 2.1 LLM Client Pool
 - **Model:** llama-3.3-70b-versatile with instant fallback to llama-3.1-8b.
-- **Key Rotation:** Circular pool of 5 permanent Groq tokens with automatic 429 backoff.
+- **Key Rotation:** Optional key rotation with automatic retry and backoff when a deployment provides a key pool.
 - **Function Calling:** Structured schema validation for \`create_pdf\` and \`generate_image\`.
 
 ### 2.2 Vector Document Compiler
@@ -2143,12 +2502,24 @@ async function renderTable(pdf, rows, colWidth, startY) {
       insertPdfMarkdown(tableMarkdown);
     }
 
+    function isAllowedImageSource(value) {
+      return /^(https?:\/\/|data:image\/|blob:)/i.test(String(value || "").trim());
+    }
+
     function promptAddPdfImage() {
-      const url = prompt("Enter an image URL (or use generated images from Image Studio):");
-      if (url && url.trim().startsWith("http")) {
-        studioAttachedImages.push({ url: url.trim(), alt: "Attached Figure" });
-        updatePdfAttachedImagesUI();
+      const value = prompt("Enter an HTTPS image URL (or use generated images from Image Studio):");
+      const url = String(value || "").trim();
+      if (!url) return;
+      if (!isAllowedImageSource(url)) {
+        alert("Please enter a valid HTTPS image URL.");
+        return;
       }
+      if (studioAttachedImages.length >= PDF_MAX_IMAGES) {
+        alert(`PDFs support up to ${PDF_MAX_IMAGES} attached images per document.`);
+        return;
+      }
+      studioAttachedImages.push({ url, alt: "Attached Figure" });
+      updatePdfAttachedImagesUI();
     }
 
     function clearPdfImages() {
@@ -2162,18 +2533,33 @@ async function renderTable(pdf, rows, colWidth, startY) {
       if (!countLabel || !strip) return;
 
       countLabel.textContent = `${studioAttachedImages.length} Image(s)`;
+      strip.replaceChildren();
       if (studioAttachedImages.length === 0) {
         strip.classList.add("hidden");
-        strip.innerHTML = "";
-      } else {
-        strip.classList.remove("hidden");
-        strip.innerHTML = studioAttachedImages.map((img, idx) => `
-          <div class="relative group w-14 h-14 rounded-lg overflow-hidden border border-slate-700 flex-shrink-0">
-            <img src="${img.url}" class="w-full h-full object-cover" />
-            <button onclick="studioAttachedImages.splice(${idx}, 1); updatePdfAttachedImagesUI();" class="absolute top-0.5 right-0.5 w-4 h-4 rounded bg-rose-600 text-white text-[10px] flex items-center justify-center">✕</button>
-          </div>
-        `).join("");
+        return;
       }
+
+      strip.classList.remove("hidden");
+      studioAttachedImages.forEach((image, index) => {
+        const tile = document.createElement("div");
+        tile.className = "relative group w-14 h-14 rounded-lg overflow-hidden border border-slate-700 flex-shrink-0 bg-surface-900";
+        const thumbnail = document.createElement("img");
+        thumbnail.src = image.url;
+        thumbnail.alt = image.alt || "Attached figure";
+        thumbnail.className = "w-full h-full object-cover";
+        thumbnail.onerror = () => thumbnail.classList.add("opacity-30");
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "absolute top-0.5 right-0.5 w-4 h-4 rounded bg-rose-600 text-white text-[10px] flex items-center justify-center";
+        remove.textContent = "✕";
+        remove.title = "Remove image";
+        remove.addEventListener("click", () => {
+          studioAttachedImages.splice(index, 1);
+          updatePdfAttachedImagesUI();
+        });
+        tile.append(thumbnail, remove);
+        strip.appendChild(tile);
+      });
     }
 
     function updatePdfStats() {
@@ -2183,12 +2569,13 @@ async function renderTable(pdf, rows, colWidth, startY) {
     }
 
     async function generatePdfFromStudio() {
+      if (pdfBuildInProgress) return;
+
       const title = document.getElementById("pdfStudioTitle").value.trim() || "Document";
       const filename = document.getElementById("pdfStudioFilename").value.trim() || "document.pdf";
       const content = document.getElementById("pdfStudioContent").value;
       const theme = document.getElementById("pdfStudioTheme").value;
       const author = document.getElementById("pdfStudioAuthor").value.trim() || "Multiple AI Studio";
-
       const previewFrame = document.getElementById("pdfStudioPreviewFrame");
       const liveBadge = document.getElementById("pdfLiveBadge");
       const downloadBtn = document.getElementById("pdfStudioDownloadBtn");
@@ -2200,8 +2587,11 @@ async function renderTable(pdf, rows, colWidth, startY) {
         return;
       }
 
+      pdfBuildInProgress = true;
       liveBadge.textContent = "Compiling...";
       liveBadge.className = "text-[10px] px-2 py-0.5 rounded bg-brand-900/60 text-brand-300 font-mono animate-pulse";
+      downloadBtn.disabled = true;
+      printBtn.disabled = true;
 
       try {
         const result = await createPdfDocument({
@@ -2218,47 +2608,73 @@ async function renderTable(pdf, rows, colWidth, startY) {
         result.id = `studio_${Date.now()}`;
         recordPdfToHistory(result);
 
-        // Render preview inside iframe
-        previewFrame.innerHTML = `
-          <iframe src="${result.blobUrl}#toolbar=0" class="w-full h-full border-0 rounded-lg" title="PDF Preview"></iframe>
-        `;
+        // The preview setting is respected without hiding the actual generated blob.
+        previewFrame.replaceChildren();
+        if (appSettings.pdfPreview) {
+          const frame = document.createElement("iframe");
+          frame.src = `${result.blobUrl}#toolbar=0&view=FitH`;
+          frame.className = "w-full h-full border-0 rounded-lg";
+          frame.title = "PDF Preview";
+          previewFrame.appendChild(frame);
+        } else {
+          const message = document.createElement("div");
+          message.className = "space-y-3 max-w-xs text-center";
+          const icon = document.createElement("div");
+          icon.className = "text-4xl";
+          icon.textContent = "✅";
+          const heading = document.createElement("div");
+          heading.className = "font-bold text-sm text-slate-200";
+          heading.textContent = "PDF compiled successfully";
+          const note = document.createElement("div");
+          note.className = "text-xs text-slate-500";
+          note.textContent = "Inline preview is disabled in Settings. Use Download PDF or View / Print.";
+          message.append(icon, heading, note);
+          previewFrame.appendChild(message);
+        }
 
         downloadBtn.disabled = false;
         printBtn.disabled = false;
         metaStrip.classList.remove("hidden");
         document.getElementById("pdfStudioMetaPages").textContent = `${result.pageCount} Page(s)`;
         document.getElementById("pdfStudioMetaSize").textContent = `${result.sizeKb} KB`;
-
         liveBadge.textContent = "Compiled ✓";
         liveBadge.className = "text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono";
         playBeep(920, 0.05);
-
       } catch (err) {
         liveBadge.textContent = "Error";
         liveBadge.className = "text-[10px] px-2 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-800 font-mono";
-        alert(`PDF Compilation Error: ${err.message}`);
+        alert(`PDF Compilation Error: ${err.message || "Unknown PDF error"}`);
+      } finally {
+        pdfBuildInProgress = false;
       }
     }
 
     function downloadLastStudioPdf() {
-      if (!lastStudioPdfBlob) return;
+      if (!lastStudioPdfBlob) {
+        alert("Build a PDF first.");
+        return;
+      }
       triggerDownloadBlob(lastStudioPdfBlob, lastStudioPdfFilename);
     }
 
     function openLastStudioPdf() {
-      if (!lastStudioPdfBlob) return;
+      if (!lastStudioPdfBlob) {
+        alert("Build a PDF first.");
+        return;
+      }
       const url = URL.createObjectURL(lastStudioPdfBlob);
-      window.open(url, "_blank");
+      const opened = window.open(url, "_blank", "noopener");
+      if (opened) window.setTimeout(() => URL.revokeObjectURL(url), 60000);
     }
 
-    async function enhancePdfWithAi() {
+    async function enhancePdfWithAi(button) {
       const current = document.getElementById("pdfStudioContent").value.trim();
       if (!current) {
         alert("Please write some notes or choose a template first for the AI to enhance.");
         return;
       }
 
-      const btn = event.currentTarget;
+      const btn = button || document.querySelector('button[onclick="enhancePdfWithAi(this)"]');
       const originalText = btn.innerHTML;
       btn.innerHTML = "<span>⏳ Enhancing...</span>";
       btn.disabled = true;
@@ -2305,6 +2721,8 @@ async function renderTable(pdf, rows, colWidth, startY) {
         btn.onclick = () => selectImageStyle(preset.id);
         btn.className = `p-2.5 rounded-xl border text-left flex flex-col justify-between gap-1 transition ${isSelected ? 'bg-pink-950/60 border-pink-500 text-pink-200 shadow-md shadow-pink-500/10' : 'bg-surface-950 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'}`;
         btn.id = `style-preset-${preset.id}`;
+        btn.setAttribute("aria-pressed", String(isSelected));
+        btn.title = `Use the ${preset.name.replace(/^[^\w]+/, "")} aesthetic`;
 
         btn.innerHTML = `
           <span class="text-xs font-bold truncate">${preset.name}</span>
@@ -2319,7 +2737,9 @@ async function renderTable(pdf, rows, colWidth, startY) {
       IMAGE_STYLE_PRESETS.forEach(p => {
         const el = document.getElementById(`style-preset-${p.id}`);
         if (!el) return;
-        if (p.id === styleId) {
+        const selected = p.id === styleId;
+        el.setAttribute("aria-pressed", String(selected));
+        if (selected) {
           el.className = "p-2.5 rounded-xl border text-left flex flex-col justify-between gap-1 transition bg-pink-950/60 border-pink-500 text-pink-200 shadow-md shadow-pink-500/10";
         } else {
           el.className = "p-2.5 rounded-xl border text-left flex flex-col justify-between gap-1 transition bg-surface-950 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200";
@@ -2347,7 +2767,8 @@ async function renderTable(pdf, rows, colWidth, startY) {
     }
 
     function setImagePrompt(txt) {
-      document.getElementById("imageStudioPrompt").value = txt;
+      document.getElementById("imageStudioPrompt").value = String(txt || "").slice(0, 1200);
+      updateImagePromptQuality();
       playBeep(640, 0.03);
     }
 
@@ -2357,7 +2778,7 @@ async function renderTable(pdf, rows, colWidth, startY) {
       playBeep(740, 0.03);
     }
 
-    async function enhancePromptWithGroq() {
+    async function enhancePromptWithGroq(button) {
       const promptInput = document.getElementById("imageStudioPrompt");
       const current = promptInput.value.trim();
       if (!current) {
@@ -2366,7 +2787,9 @@ async function renderTable(pdf, rows, colWidth, startY) {
       }
 
       const spinner = document.getElementById("enhanceSpinner");
+      const polishButton = button || document.getElementById("enhancePromptBtn");
       spinner.classList.remove("hidden");
+      if (polishButton) polishButton.disabled = true;
 
       try {
         const response = await callGroqAPI({
@@ -2383,13 +2806,15 @@ async function renderTable(pdf, rows, colWidth, startY) {
         });
 
         if (response.content) {
-          promptInput.value = response.content.trim();
+          promptInput.value = response.content.trim().slice(0, 1200);
+          updateImagePromptQuality();
           playBeep(880, 0.05);
         }
       } catch (err) {
         alert(`Prompt enhancement note: ${err.message}`);
       } finally {
         spinner.classList.add("hidden");
+        if (polishButton) polishButton.disabled = false;
       }
     }
 
@@ -2399,21 +2824,28 @@ async function renderTable(pdf, rows, colWidth, startY) {
       const enhance = document.getElementById("imageStudioEnhanceToggle").checked;
       const negativePrompt = document.getElementById("imageStudioNegative").value.trim();
       const seedVal = document.getElementById("imageStudioSeed").value.trim();
-
       const genBtn = document.getElementById("studioGenBtn");
       const loadingState = document.getElementById("imageLoadingState");
-      const resultsGrid = document.getElementById("imageResultsGrid");
       const statusLabel = document.getElementById("imageStudioStatus");
+      const loadingTitle = document.getElementById("imageLoadingTitle");
+      const loadingSub = document.getElementById("imageLoadingSub");
 
       if (!prompt) {
         alert("Please enter an image prompt description.");
         return;
       }
+      if (seedVal && normalizeImageSeed(seedVal) === null) {
+        alert("Seed must be a whole number, or leave it blank for a random seed.");
+        return;
+      }
 
+      const token = ++imageGenerationToken;
       genBtn.disabled = true;
       genBtn.classList.add("opacity-50", "cursor-not-allowed");
       loadingState.classList.remove("hidden");
-      statusLabel.textContent = "Generating...";
+      loadingTitle.textContent = "Preparing variations...";
+      loadingSub.textContent = "Creating deterministic image requests and checking each result";
+      statusLabel.textContent = "Preparing...";
       statusLabel.className = "text-xs text-pink-400 font-mono animate-pulse";
 
       try {
@@ -2425,93 +2857,227 @@ async function renderTable(pdf, rows, colWidth, startY) {
           model,
           enhance,
           negativePrompt,
-          customSeed: seedVal ? Number(seedVal) : null
+          customSeed: seedVal || null
         });
+        if (token !== imageGenerationToken) return;
 
-        // Save to gallery
-        results.forEach(r => saveImageToHistory(r));
+        const rendered = renderImageResults(results);
+        let completed = 0;
+        let readyCount = 0;
+        statusLabel.textContent = `Loading 0/${results.length}...`;
+        loadingTitle.textContent = "Rendering your variations...";
 
-        // Render Results Grid
-        renderImageResults(results);
+        const checks = rendered.loadPromises.map(promise => promise.then(image => {
+          completed += 1;
+          readyCount += 1;
+          if (image) saveImageToHistory(image);
+          loadingSub.textContent = `${completed} of ${results.length} variations ready`;
+          statusLabel.textContent = `Loading ${completed}/${results.length}...`;
+          return image;
+        }).catch(() => {
+          completed += 1;
+          loadingSub.textContent = `${completed} of ${results.length} variations checked`;
+          statusLabel.textContent = `Loading ${completed}/${results.length}...`;
+          return null;
+        }));
+        await Promise.all(checks);
+        if (token !== imageGenerationToken) return;
 
-        statusLabel.textContent = `Done (${results.length} ready)`;
-        statusLabel.className = "text-xs text-emerald-400 font-mono";
-        document.getElementById("imageBatchActions").classList.remove("hidden");
-        playBeep(840, 0.06);
-
+        document.getElementById("imageBatchActions").classList.toggle("hidden", readyCount === 0);
+        if (readyCount > 0) {
+          statusLabel.textContent = `Done (${readyCount}/${results.length} ready)`;
+          statusLabel.className = "text-xs text-emerald-400 font-mono";
+          playBeep(840, 0.06);
+        } else {
+          statusLabel.textContent = "No images loaded";
+          statusLabel.className = "text-xs text-rose-400 font-mono";
+          loadingSub.textContent = "The service did not return an image. Use Retry on a variation or try again.";
+        }
       } catch (err) {
-        statusLabel.textContent = "Error";
-        statusLabel.className = "text-xs text-rose-400 font-mono";
-        alert(`Generation Error: ${err.message}`);
+        if (token === imageGenerationToken) {
+          statusLabel.textContent = "Error";
+          statusLabel.className = "text-xs text-rose-400 font-mono";
+          alert(`Generation Error: ${err.message || "Unable to create image requests"}`);
+        }
       } finally {
-        genBtn.disabled = false;
-        genBtn.classList.remove("opacity-50", "cursor-not-allowed");
-        loadingState.classList.add("hidden");
+        if (token === imageGenerationToken) {
+          genBtn.disabled = false;
+          genBtn.classList.remove("opacity-50", "cursor-not-allowed");
+          loadingState.classList.add("hidden");
+        }
       }
     }
 
     function renderImageResults(images) {
       const grid = document.getElementById("imageResultsGrid");
-      if (!grid) return;
-      grid.innerHTML = "";
+      if (!grid) return { loadPromises: [] };
+      currentImageResults = Array.isArray(images) ? images : [];
+      grid.replaceChildren();
+      if (!currentImageResults.length) return { loadPromises: [] };
 
-      images.forEach((img, idx) => {
+      const loadPromises = [];
+      currentImageResults.forEach((image, index) => {
         const card = document.createElement("div");
         card.className = "bg-surface-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg flex flex-col group transition hover:border-pink-500/50";
+        card.dataset.imageId = image.id || String(index);
 
-        card.innerHTML = `
-          <div class="relative overflow-hidden bg-surface-950 aspect-square cursor-pointer" onclick="openLightboxModal('${img.url}', '${img.prompt.replace(/'/g, "\\'")}', '${img.dimensions}', '${img.model}')">
-            <img src="${img.url}" alt="${img.prompt}" class="w-full h-full object-cover transition transform duration-300 group-hover:scale-105" loading="lazy" />
-            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 opacity-0 group-hover:opacity-100 transition p-3 flex flex-col justify-between">
-              <span class="text-[10px] px-2 py-0.5 rounded bg-black/60 text-white font-mono self-end">${img.dimensions}</span>
-              <div class="text-xs text-white line-clamp-2">${img.prompt}</div>
-            </div>
-          </div>
+        const media = document.createElement("div");
+        media.className = "relative overflow-hidden bg-surface-950 cursor-pointer";
+        media.style.aspectRatio = `${image.width || 1} / ${image.height || 1}`;
+        const imageElement = document.createElement("img");
+        imageElement.alt = image.prompt || "Generated artwork";
+        imageElement.className = "w-full h-full object-cover transition transform duration-300 group-hover:scale-105";
+        imageElement.decoding = "async";
+        imageElement.loading = "eager";
 
-          <div class="p-3 border-t border-slate-800 bg-surface-950/80 space-y-2 flex-1 flex flex-col justify-between">
-            <div class="flex items-center justify-between text-[11px] text-slate-400">
-              <span class="truncate font-semibold text-pink-300">${img.style}</span>
-              <span class="font-mono">#${img.seed}</span>
-            </div>
+        const state = document.createElement("div");
+        state.className = "absolute inset-x-2 bottom-2 rounded-lg bg-black/70 px-2 py-1 text-[11px] text-slate-200 flex items-center justify-between gap-2";
+        const stateText = document.createElement("span");
+        stateText.textContent = "Loading image...";
+        const stateMeta = document.createElement("span");
+        stateMeta.className = "font-mono text-slate-400";
+        stateMeta.textContent = image.dimensions;
+        state.append(stateText, stateMeta);
+        media.append(imageElement, state);
+        media.addEventListener("click", () => openLightboxModal(image.url, image.prompt || "Generated artwork", image.dimensions, image.model, image));
 
-            <div class="grid grid-cols-2 gap-1.5 pt-1 border-t border-slate-800/80 text-xs">
-              <button onclick="downloadDirectImage('${img.url}', 'art-${Date.now()}-${idx + 1}.jpg')" class="py-1.5 px-2 rounded-lg bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-200 font-semibold flex items-center justify-center gap-1 transition">
-                <span>⬇️ Save</span>
-              </button>
-              <button onclick="sendImageToPdfStudio('${img.url}', '${img.prompt.replace(/'/g, "\\'")}')" class="py-1.5 px-2 rounded-lg bg-indigo-950 hover:bg-indigo-900 border border-indigo-700/60 text-indigo-300 font-semibold flex items-center justify-center gap-1 transition">
-                <span>📄 To PDF</span>
-              </button>
-            </div>
-          </div>
-        `;
+        const body = document.createElement("div");
+        body.className = "p-3 border-t border-slate-800 bg-surface-950/80 space-y-2 flex-1 flex flex-col justify-between";
+        const meta = document.createElement("div");
+        meta.className = "flex items-center justify-between text-[11px] text-slate-400 gap-2";
+        const style = document.createElement("span");
+        style.className = "truncate font-semibold text-pink-300";
+        style.textContent = image.style || "Custom style";
+        const seed = document.createElement("span");
+        seed.className = "font-mono whitespace-nowrap";
+        seed.textContent = `#${image.seed}`;
+        meta.append(style, seed);
+
+        const promptPreview = document.createElement("p");
+        promptPreview.className = "text-[11px] text-slate-500 line-clamp-2 min-h-[2rem]";
+        promptPreview.textContent = image.prompt || "Generated artwork";
+
+        const actions = document.createElement("div");
+        actions.className = "grid grid-cols-2 gap-1.5 pt-1 border-t border-slate-800/80 text-xs";
+        const download = document.createElement("button");
+        download.type = "button";
+        download.disabled = true;
+        download.className = "py-1.5 px-2 rounded-lg bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-200 font-semibold flex items-center justify-center gap-1 transition disabled:opacity-40 disabled:cursor-not-allowed";
+        download.innerHTML = "<span>⬇️ Save</span>";
+        download.addEventListener("click", () => {
+          if (image.ready) downloadDirectImage(image.url, `art-${Date.now()}-${index + 1}.jpg`);
+        });
+        const send = document.createElement("button");
+        send.type = "button";
+        send.disabled = true;
+        send.className = "py-1.5 px-2 rounded-lg bg-indigo-950 hover:bg-indigo-900 border border-indigo-700/60 text-indigo-300 font-semibold flex items-center justify-center gap-1 transition disabled:opacity-40 disabled:cursor-not-allowed";
+        send.innerHTML = "<span>📄 To PDF</span>";
+        send.addEventListener("click", () => {
+          if (image.ready) sendImageToPdfStudio(image.url, image.prompt);
+        });
+        actions.append(download, send);
+
+        const retry = document.createElement("button");
+        retry.type = "button";
+        retry.className = "hidden w-full py-1.5 rounded-lg bg-rose-950 hover:bg-rose-900 border border-rose-800 text-rose-300 text-xs font-semibold";
+        retry.textContent = "↻ Retry variation";
+
+        body.append(meta, promptPreview, actions, retry);
+        card.append(media, body);
         grid.appendChild(card);
+
+        const updateState = (status, error = null) => {
+          if (status === "ready") {
+            image.ready = true;
+            download.disabled = false;
+            send.disabled = false;
+            retry.classList.add("hidden");
+            state.className = "absolute inset-x-2 bottom-2 rounded-lg bg-emerald-950/90 px-2 py-1 text-[11px] text-emerald-200 flex items-center justify-between gap-2";
+            stateText.textContent = "Ready";
+          } else if (status === "error") {
+            image.ready = false;
+            download.disabled = true;
+            send.disabled = true;
+            retry.classList.remove("hidden");
+            state.className = "absolute inset-x-2 bottom-2 rounded-lg bg-rose-950/95 px-2 py-1 text-[11px] text-rose-200 flex items-center justify-between gap-2";
+            stateText.textContent = error?.message || "Image failed";
+          } else {
+            state.className = "absolute inset-x-2 bottom-2 rounded-lg bg-black/70 px-2 py-1 text-[11px] text-slate-200 flex items-center justify-between gap-2";
+            stateText.textContent = "Loading image...";
+          }
+        };
+
+        const watchImage = (url, isRetry = false) => {
+          if (isRetry) {
+            image.ready = false;
+            download.disabled = true;
+            send.disabled = true;
+            retry.classList.add("hidden");
+            updateState("loading");
+          }
+          const request = loadImageElement(imageElement, url, updateState);
+          request.catch(() => {});
+          return request;
+        };
+        retry.addEventListener("click", () => {
+          image.url = addImageRetryToken(image.url);
+          watchImage(image.url, true)
+            .then(() => saveImageToHistory(image))
+            .catch(() => {});
+        });
+        loadPromises.push(watchImage(image.url).then(() => image));
       });
+      return { loadPromises };
     }
 
     async function downloadDirectImage(url, filename) {
       try {
-        const res = await fetch(url);
-        const blob = await res.blob();
-        triggerDownloadBlob(blob, filename);
-      } catch (e) {
-        window.open(url, "_blank");
+        const response = await fetch(url, { mode: "cors", credentials: "omit" });
+        if (!response.ok) throw new Error(`Image download failed (${response.status})`);
+        const contentType = response.headers.get("content-type") || "";
+        if (contentType && !contentType.toLowerCase().startsWith("image/")) throw new Error("The image service returned an error response.");
+        const blob = await response.blob();
+        triggerDownloadBlob(blob, filename || `art-${Date.now()}.jpg`);
+      } catch (error) {
+        const opened = window.open(url, "_blank", "noopener");
+        if (!opened) alert("The image could not be downloaded automatically. Allow pop-ups to open the original image.");
       }
     }
 
     function sendImageToPdfStudio(url, prompt) {
+      if (!isAllowedImageSource(url)) return;
+      if (studioAttachedImages.some(image => image.url === url)) {
+        switchView("pdf");
+        return;
+      }
+      if (studioAttachedImages.length >= PDF_MAX_IMAGES) {
+        alert(`PDFs support up to ${PDF_MAX_IMAGES} attached images per document.`);
+        return;
+      }
       studioAttachedImages.push({ url, alt: prompt || "Synthesized Artwork" });
       updatePdfAttachedImagesUI();
-      switchView('pdf');
+      switchView("pdf");
       playBeep(880, 0.04);
     }
 
     function sendBatchToPdf() {
-      const images = document.querySelectorAll("#imageResultsGrid img");
-      images.forEach(img => {
-        studioAttachedImages.push({ url: img.src, alt: img.alt || "Generated Image" });
+      const readyImages = currentImageResults.filter(image => image.ready);
+      if (!readyImages.length) {
+        alert("Wait for at least one image to finish loading before sending it to a PDF.");
+        return;
+      }
+      const availableSlots = PDF_MAX_IMAGES - studioAttachedImages.length;
+      if (availableSlots <= 0) {
+        alert(`PDFs support up to ${PDF_MAX_IMAGES} attached images per document.`);
+        return;
+      }
+      readyImages.slice(0, availableSlots).forEach(image => {
+        if (!studioAttachedImages.some(attached => attached.url === image.url)) {
+          studioAttachedImages.push({ url: image.url, alt: image.prompt || "Generated Image" });
+        }
       });
       updatePdfAttachedImagesUI();
-      switchView('pdf');
+      switchView("pdf");
       playBeep(920, 0.05);
     }
 
@@ -2679,21 +3245,32 @@ Structure your synthesis with clear sections:
     // ==============================================================
     let currentLightboxData = {};
 
-    function openLightboxModal(url, prompt, dims = "1024x1024", model = "flux") {
-      currentLightboxData = { url, prompt, dims, model };
-      document.getElementById("lightboxImage").src = url;
-      document.getElementById("lightboxTitle").textContent = prompt.slice(0, 35) + "...";
-      document.getElementById("lightboxPrompt").textContent = prompt;
-      document.getElementById("lightboxMeta").textContent = `${dims} • ${model.toUpperCase()}`;
+    function openLightboxModal(url, prompt, dims = "1024x1024", model = "flux", imageData = null) {
+      const safeUrl = String(url || "");
+      const safePrompt = String(prompt || "Generated artwork");
+      const safeDims = String(dims || imageData?.dimensions || "1024x1024");
+      const safeModel = String(model || imageData?.model || "flux");
+      currentLightboxData = { url: safeUrl, prompt: safePrompt, dims: safeDims, model: safeModel, imageData };
 
-      document.getElementById("lightboxDownloadBtn").onclick = () => downloadDirectImage(url, `artwork-${Date.now()}.jpg`);
-      document.getElementById("lightboxCopyBtn").onclick = () => {
-        navigator.clipboard.writeText(prompt);
-        alert("Prompt copied to clipboard!");
+      const imageElement = document.getElementById("lightboxImage");
+      imageElement.src = safeUrl;
+      imageElement.alt = safePrompt;
+      document.getElementById("lightboxTitle").textContent = safePrompt.length > 38 ? `${safePrompt.slice(0, 38)}...` : safePrompt;
+      document.getElementById("lightboxPrompt").textContent = safePrompt;
+      document.getElementById("lightboxMeta").textContent = `${safeDims} • ${safeModel.toUpperCase()}`;
+
+      document.getElementById("lightboxDownloadBtn").onclick = () => downloadDirectImage(safeUrl, `artwork-${Date.now()}.jpg`);
+      document.getElementById("lightboxCopyBtn").onclick = async () => {
+        try {
+          await navigator.clipboard.writeText(safePrompt);
+          alert("Prompt copied to clipboard!");
+        } catch (error) {
+          alert("Clipboard access is unavailable. Select and copy the prompt manually.");
+        }
       };
       document.getElementById("lightboxSendToPdfBtn").onclick = () => {
         closeLightboxModal();
-        sendImageToPdfStudio(url, prompt);
+        sendImageToPdfStudio(safeUrl, safePrompt);
       };
 
       document.getElementById("imageLightboxModal").classList.remove("hidden");
@@ -2710,31 +3287,54 @@ Structure your synthesis with clear sections:
       const modal = document.getElementById("imageGalleryModal");
       const grid = document.getElementById("galleryGrid");
       const badge = document.getElementById("galleryCountBadge");
+      if (!modal || !grid || !badge) return;
 
       badge.textContent = `${imageHistory.length} saved`;
-      grid.innerHTML = "";
-
+      grid.replaceChildren();
       if (imageHistory.length === 0) {
-        grid.innerHTML = `
-          <div class="py-16 text-center text-slate-500 space-y-2">
-            <div class="text-3xl">🖼️</div>
-            <div>No images generated yet.</div>
-            <div class="text-xs">Generated images will automatically persist here.</div>
-          </div>
-        `;
+        const empty = document.createElement("div");
+        empty.className = "py-16 text-center text-slate-500 space-y-2";
+        empty.innerHTML = "<div class=\"text-3xl\">🖼️</div><div>No images generated yet.</div><div class=\"text-xs\">Generated images will automatically persist here.</div>";
+        grid.appendChild(empty);
       } else {
         const wrap = document.createElement("div");
         wrap.className = "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3";
-        imageHistory.forEach(img => {
+        imageHistory.forEach(image => {
+          const prompt = String(image.prompt || "Generated artwork");
           const item = document.createElement("div");
-          item.className = "relative group rounded-xl overflow-hidden border border-slate-800 bg-surface-950 aspect-square";
-          item.innerHTML = `
-            <img src="${img.url}" class="w-full h-full object-cover cursor-pointer" onclick="closeGalleryModal(); openLightboxModal('${img.url}', '${img.prompt.replace(/'/g, "\\'")}')" />
-            <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1.5 transition p-2">
-              <button onclick="downloadDirectImage('${img.url}', 'art-${Date.now()}.jpg')" class="p-1.5 rounded-lg bg-surface-900 text-white text-xs">⬇️</button>
-              <button onclick="closeGalleryModal(); sendImageToPdfStudio('${img.url}', '${img.prompt.replace(/'/g, "\\'")}')" class="p-1.5 rounded-lg bg-indigo-600 text-white text-xs">📄 PDF</button>
-            </div>
-          `;
+          item.className = "relative group rounded-xl overflow-hidden border border-slate-800 bg-surface-950";
+          const imageElement = document.createElement("img");
+          imageElement.src = image.url;
+          imageElement.alt = prompt;
+          imageElement.className = "w-full object-cover cursor-pointer";
+          imageElement.style.aspectRatio = `${image.width || parseImageDimensions(image.dimensions).width} / ${image.height || parseImageDimensions(image.dimensions).height}`;
+          imageElement.addEventListener("click", () => {
+            closeGalleryModal();
+            openLightboxModal(image.url, prompt, image.dimensions, image.model, image);
+          });
+          imageElement.onerror = () => imageElement.classList.add("opacity-30");
+
+          const overlay = document.createElement("div");
+          overlay.className = "absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1.5 transition p-2 pointer-events-none";
+          const download = document.createElement("button");
+          download.className = "p-1.5 rounded-lg bg-surface-900 text-white text-xs pointer-events-auto";
+          download.textContent = "⬇️";
+          download.title = "Download image";
+          download.addEventListener("click", event => {
+            event.stopPropagation();
+            downloadDirectImage(image.url, `art-${Date.now()}.jpg`);
+          });
+          const send = document.createElement("button");
+          send.className = "p-1.5 rounded-lg bg-indigo-600 text-white text-xs pointer-events-auto";
+          send.textContent = "📄 PDF";
+          send.title = "Send to PDF";
+          send.addEventListener("click", event => {
+            event.stopPropagation();
+            closeGalleryModal();
+            sendImageToPdfStudio(image.url, prompt);
+          });
+          overlay.append(download, send);
+          item.append(imageElement, overlay);
           wrap.appendChild(item);
         });
         grid.appendChild(wrap);
@@ -2758,39 +3358,75 @@ Structure your synthesis with clear sections:
     }
 
     function saveImageToHistory(imgObj) {
-      imageHistory.unshift(imgObj);
+      if (!imgObj || !isAllowedImageSource(imgObj.url)) return;
+      const saved = { ...imgObj, ready: true };
+      imageHistory = imageHistory.filter(image => image.url !== saved.url);
+      imageHistory.unshift(saved);
       if (imageHistory.length > 50) imageHistory = imageHistory.slice(0, 50);
       try {
         localStorage.setItem("yf_image_history", JSON.stringify(imageHistory));
-      } catch (e) {}
+      } catch (error) {
+        console.warn("Image history could not be saved:", error);
+      }
       updateGalleryCounters();
     }
 
     function updateGalleryCounters() {
-      const c = imageHistory.length;
-      const el1 = document.getElementById("studioGalleryCount");
-      if (el1) el1.textContent = c;
+      const count = imageHistory.length;
+      const galleryCount = document.getElementById("studioGalleryCount");
+      const galleryBadge = document.getElementById("galleryCountBadge");
+      if (galleryCount) galleryCount.textContent = count;
+      if (galleryBadge) galleryBadge.textContent = `${count} saved`;
     }
 
     // PDF History Controller
     function recordPdfToHistory(pdfObj) {
-      pdfHistory.unshift({
-        id: pdfObj.id || `pdf_${Date.now()}`,
-        title: pdfObj.title,
-        filename: pdfObj.filename,
-        pageCount: pdfObj.pageCount,
-        sizeKb: pdfObj.sizeKb,
+      if (!pdfObj) return;
+      const id = pdfObj.id || `pdf_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      pdfObj.id = id;
+      if (!window._pdfBlobs) window._pdfBlobs = {};
+      if (pdfObj.blob instanceof Blob) window._pdfBlobs[id] = pdfObj.blob;
+
+      const metadata = {
+        id,
+        title: pdfObj.title || "PDF Document",
+        filename: pdfObj.filename || "document.pdf",
+        pageCount: pdfObj.pageCount || 1,
+        sizeKb: pdfObj.sizeKb || "0.0",
         createdAt: new Date().toISOString()
-      });
-      if (pdfHistory.length > 30) pdfHistory = pdfHistory.slice(0, 30);
+      };
+      pdfHistory = [metadata, ...pdfHistory.filter(item => item.id !== id)].slice(0, 30);
       try {
         localStorage.setItem("yf_pdf_history", JSON.stringify(pdfHistory));
-      } catch (e) {}
+      } catch (error) {
+        console.warn("PDF history could not be saved:", error);
+      }
 
-      // Background cloud backup if logged in
+      // Background cloud backup if logged in.
       if (currentUser && currentUser.id && supabaseClient && pdfObj.blob) {
         syncPdfToSupabase(pdfObj);
       }
+    }
+
+    function downloadStoredPdf(id) {
+      const item = pdfHistory.find(entry => entry.id === id);
+      const blob = window._pdfBlobs && window._pdfBlobs[id];
+      if (!blob) {
+        alert("This history entry is from an earlier session. Build the document again to download it here.");
+        return;
+      }
+      triggerDownloadBlob(blob, item?.filename || "document.pdf");
+    }
+
+    function openStoredPdf(id) {
+      const blob = window._pdfBlobs && window._pdfBlobs[id];
+      if (!blob) {
+        alert("This PDF preview is no longer available. Build the document again.");
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const opened = window.open(url, "_blank", "noopener");
+      if (opened) window.setTimeout(() => URL.revokeObjectURL(url), 60000);
     }
 
     async function syncPdfToSupabase(pdfObj) {
@@ -2819,32 +3455,56 @@ Structure your synthesis with clear sections:
     function openPdfHistoryModal() {
       const modal = document.getElementById("pdfHistoryModal");
       const list = document.getElementById("pdfHistoryList");
-      list.innerHTML = "";
+      if (!modal || !list) return;
+      list.replaceChildren();
 
       if (pdfHistory.length === 0) {
-        list.innerHTML = `
-          <div class="py-12 text-center text-slate-500 space-y-2">
-            <div class="text-3xl">📚</div>
-            <div>No PDF history yet.</div>
-            <div class="text-xs">Generated documents will automatically appear here.</div>
-          </div>
-        `;
+        const empty = document.createElement("div");
+        empty.className = "py-12 text-center text-slate-500 space-y-2";
+        empty.innerHTML = "<div class=\"text-3xl\">📚</div><div>No PDF history yet.</div><div class=\"text-xs\">Generated documents will automatically appear here.</div>";
+        list.appendChild(empty);
       } else {
         pdfHistory.forEach(item => {
           const row = document.createElement("div");
           row.className = "bg-surface-950 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-3 text-xs";
-          row.innerHTML = `
-            <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-lg bg-surface-900 border border-slate-800 flex items-center justify-center text-base">📄</div>
-              <div>
-                <div class="font-bold text-slate-200">${item.title}</div>
-                <div class="text-slate-500 font-mono text-[11px]">${item.filename} • ${item.pageCount || 1} pages</div>
-              </div>
-            </div>
-            <div class="flex items-center gap-2">
-              <button onclick="deletePdfHistoryItem('${item.id}')" class="p-1.5 rounded-lg bg-surface-900 hover:bg-rose-950 text-slate-400 hover:text-rose-400">🗑️</button>
-            </div>
-          `;
+          const identity = document.createElement("div");
+          identity.className = "flex items-center gap-3 min-w-0";
+          const icon = document.createElement("div");
+          icon.className = "w-8 h-8 rounded-lg bg-surface-900 border border-slate-800 flex items-center justify-center text-base flex-shrink-0";
+          icon.textContent = "📄";
+          const details = document.createElement("div");
+          details.className = "min-w-0";
+          const title = document.createElement("div");
+          title.className = "font-bold text-slate-200 truncate";
+          title.textContent = item.title || "PDF Document";
+          const meta = document.createElement("div");
+          meta.className = "text-slate-500 font-mono text-[11px] truncate";
+          meta.textContent = `${item.filename || "document.pdf"} • ${item.pageCount || 1} pages • ${item.sizeKb || 0} KB`;
+          details.append(title, meta);
+          identity.append(icon, details);
+
+          const actions = document.createElement("div");
+          actions.className = "flex items-center gap-1.5 flex-shrink-0";
+          if (window._pdfBlobs && window._pdfBlobs[item.id]) {
+            const download = document.createElement("button");
+            download.className = "p-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white";
+            download.title = "Download PDF";
+            download.textContent = "⬇️";
+            download.addEventListener("click", () => downloadStoredPdf(item.id));
+            const view = document.createElement("button");
+            view.className = "p-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-300";
+            view.title = "View / print PDF";
+            view.textContent = "🔍";
+            view.addEventListener("click", () => openStoredPdf(item.id));
+            actions.append(download, view);
+          }
+          const remove = document.createElement("button");
+          remove.className = "p-1.5 rounded-lg bg-surface-900 hover:bg-rose-950 text-slate-400 hover:text-rose-400";
+          remove.title = "Delete history entry";
+          remove.textContent = "🗑️";
+          remove.addEventListener("click", () => deletePdfHistoryItem(item.id));
+          actions.appendChild(remove);
+          row.append(identity, actions);
           list.appendChild(row);
         });
       }
@@ -2993,21 +3653,30 @@ Structure your synthesis with clear sections:
       // Load Image History
       try {
         const ih = localStorage.getItem("yf_image_history");
-        if (ih) imageHistory = JSON.parse(ih);
-      } catch (e) {}
+        const parsedImages = ih ? JSON.parse(ih) : [];
+        if (Array.isArray(parsedImages)) imageHistory = parsedImages.filter(image => image && isAllowedImageSource(image.url));
+      } catch (e) {
+        imageHistory = [];
+      }
       updateGalleryCounters();
 
       // Load PDF History
       try {
         const ph = localStorage.getItem("yf_pdf_history");
-        if (ph) pdfHistory = JSON.parse(ph);
-      } catch (e) {}
+        const parsedPdfs = ph ? JSON.parse(ph) : [];
+        if (Array.isArray(parsedPdfs)) pdfHistory = parsedPdfs.filter(item => item && typeof item === "object");
+      } catch (e) {
+        pdfHistory = [];
+      }
 
       // Load Chat Sessions
       try {
         const cs = localStorage.getItem("yf_chat_sessions");
-        if (cs) chatSessions = JSON.parse(cs);
-      } catch (e) {}
+        const parsedSessions = cs ? JSON.parse(cs) : {};
+        if (parsedSessions && typeof parsedSessions === "object" && !Array.isArray(parsedSessions)) chatSessions = parsedSessions;
+      } catch (e) {
+        chatSessions = {};
+      }
 
       if (Object.keys(chatSessions).length === 0) {
         createNewChat();
@@ -3032,6 +3701,8 @@ Structure your synthesis with clear sections:
       loadPersistedState();
       initStylePresetsGrid();
       applyPdfTemplate('proposal');
+      updateImagePromptQuality();
+      updatePdfAttachedImagesUI();
 
       const chatInput = document.getElementById("chatInput");
       if (chatInput) {
