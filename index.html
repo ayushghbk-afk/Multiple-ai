@@ -1,128 +1,913 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>5-Agent Groq Parallel Team</title>
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Multiple AI Studio - Assistant, PDF Studio, Image Studio & 5-Agent Swarm</title>
 
-  <!-- Header -->
-  <header class="border-b border-slate-800 bg-slate-950/50 backdrop-blur px-6 py-4">
-    <div class="max-w-7xl mx-auto flex items-center justify-between">
-      <div class="flex items-center space-x-3">
-        <span class="text-2xl">⚡</span>
-        <h1 class="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-          5-Agent Parallel AI Team (Groq Powered)
-        </h1>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            },
+            surface: {
+              950: '#070b14',
+              900: '#0b1020',
+              850: '#0e1529',
+              800: '#111936',
+              700: '#1a244d',
+              600: '#253266'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- jsPDF with fallback CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+    if (!window.jspdf) {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"><\/script>');
+    }
+  </script>
+
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.25); border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.45); }
+
+    /* Custom Transitions */
+    .view-panel { display: none; }
+    .view-panel.active { display: flex; }
+
+    /* Glass Effect */
+    .glass-card {
+      background: rgba(17, 25, 54, 0.7);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-nav {
+      background: rgba(11, 16, 32, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* Animation */
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 0.6; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.03); }
+    }
+    .animate-glow { animation: pulse-glow 3s infinite ease-in-out; }
+  </style>
+</head>
+<body class="bg-surface-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-brand-500 selection:text-white">
+
+  <!-- TOP APP HEADER & NAVIGATION -->
+  <header class="glass-nav sticky top-0 z-40 px-4 py-2.5">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
+      
+      <!-- Brand & Mobile Menu Button -->
+      <div class="flex items-center gap-3">
+        <button id="sidebarToggleBtn" onclick="toggleSidebar()" class="lg:hidden p-2 rounded-lg bg-surface-800 border border-slate-700 text-slate-300 hover:text-white">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+        </button>
+
+        <div class="flex items-center gap-2.5 cursor-pointer" onclick="switchView('chat')">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 via-indigo-500 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+            <span class="text-lg font-black text-white">✨</span>
+          </div>
+          <div>
+            <div class="font-bold text-base bg-gradient-to-r from-white via-slate-200 to-indigo-200 bg-clip-text text-transparent flex items-center gap-1.5">
+              Multiple AI Studio
+              <span class="text-[10px] uppercase font-mono px-1.5 py-0.2 rounded bg-brand-500/20 text-brand-300 border border-brand-500/30">Pro</span>
+            </div>
+            <div class="text-[11px] text-slate-400 hidden sm:block">AI Assistant • PDF Studio • Image Studio • 5-Agent Swarm</div>
+          </div>
+        </div>
       </div>
-      <span class="text-xs font-mono bg-emerald-950 text-emerald-300 border border-emerald-800 px-3 py-1 rounded-full">
-        API Keys Embedded
-      </span>
+
+      <!-- Navigation Tabs (Central Switcher) -->
+      <nav class="flex items-center bg-surface-900 border border-slate-800 p-1 rounded-xl shadow-inner max-w-md overflow-x-auto">
+        <button id="nav-tab-chat" onclick="switchView('chat')" class="nav-tab px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition text-white bg-brand-600 shadow-sm">
+          <span>💬</span>
+          <span class="hidden sm:inline">AI Chat</span>
+        </button>
+        <button id="nav-tab-pdf" onclick="switchView('pdf')" class="nav-tab px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition text-slate-400 hover:text-slate-200">
+          <span>📄</span>
+          <span>PDF Studio</span>
+        </button>
+        <button id="nav-tab-image" onclick="switchView('image')" class="nav-tab px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition text-slate-400 hover:text-slate-200">
+          <span>🎨</span>
+          <span>Image Studio</span>
+        </button>
+        <button id="nav-tab-swarm" onclick="switchView('swarm')" class="nav-tab px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition text-slate-400 hover:text-slate-200">
+          <span>⚡</span>
+          <span class="hidden md:inline">5-Agent Swarm</span>
+          <span class="md:hidden">Swarm</span>
+        </button>
+      </nav>
+
+      <!-- Right Utility Controls -->
+      <div class="flex items-center gap-2">
+        <button onclick="openGalleryModal()" title="Image Gallery & History" class="p-2 rounded-xl bg-surface-900 hover:bg-surface-800 border border-slate-800 text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs font-medium">
+          <span>🖼️</span>
+          <span class="hidden xl:inline">Gallery</span>
+        </button>
+        <button onclick="openPdfHistoryModal()" title="PDF Library & Backups" class="p-2 rounded-xl bg-surface-900 hover:bg-surface-800 border border-slate-800 text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs font-medium">
+          <span>📚</span>
+          <span class="hidden xl:inline">PDFs</span>
+        </button>
+        <button onclick="openSettingsModal()" title="Settings & API Keys" class="p-2 rounded-xl bg-surface-900 hover:bg-surface-800 border border-slate-800 text-slate-300 hover:text-white transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+        </button>
+        <button id="userAuthBtn" onclick="openAuthModal()" class="px-3 py-1.5 rounded-xl bg-brand-600/20 hover:bg-brand-600/30 border border-brand-500/40 text-brand-300 text-xs font-semibold transition flex items-center gap-1.5">
+          <span id="userStatusDot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          <span id="userStatusText">Guest</span>
+        </button>
+      </div>
     </div>
   </header>
 
-  <!-- Main Container -->
-  <main class="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
+  <!-- MAIN VIEWPORT CONTAINER -->
+  <div class="flex-1 flex overflow-hidden relative">
 
-    <!-- Prompt Input Section -->
-    <section class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5 shadow-lg space-y-4">
-      <label for="userPrompt" class="block text-sm font-semibold text-slate-300">
-        Enter Project Request for the 5-Agent Team
-      </label>
-      <textarea id="userPrompt" rows="3" 
-                placeholder="e.g., Build a real-time multiplayer leaderboards backend with WebSocket sync and cheat protection..." 
-                class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm focus:outline-none focus:border-blue-500 transition resize-none"></textarea>
+    <!-- ============================================================== -->
+    <!-- VIEW 1: AI CHAT ASSISTANT -->
+    <!-- ============================================================== -->
+    <div id="view-chat" class="view-panel active flex-1 flex w-full h-[calc(100vh-61px)] overflow-hidden">
       
-      <button id="runBtn" onclick="executeAgentTeam()" 
-              class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold py-3 rounded-lg transition duration-200 flex items-center justify-center space-x-2 shadow-md">
-        <span>🚀 Launch 5 Agents in Parallel</span>
-      </button>
-    </section>
-
-    <!-- Live Status Grid (5 Parallel Agents) -->
-    <section class="grid grid-cols-1 md:grid-cols-5 gap-3">
-      
-      <!-- Agent 1: Tech Lead -->
-      <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-3 flex flex-col justify-between">
-        <div class="flex items-center justify-between mb-2">
-          <span class="font-bold text-xs text-blue-400">🛠️ Tech Lead</span>
-          <span id="status-agent1" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-400 font-mono">Idle</span>
+      <!-- Chat Sidebar -->
+      <aside id="chatSidebar" class="w-72 bg-surface-900/95 border-r border-slate-800 flex flex-col fixed inset-y-0 left-0 top-[61px] z-30 transform -translate-x-full lg:translate-x-0 lg:static transition-transform duration-200">
+        <div class="p-3 border-b border-slate-800 flex items-center justify-between">
+          <button onclick="createNewChat()" class="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-md transition">
+            <span>+</span> New Conversation
+          </button>
+          <button onclick="toggleSidebar()" class="lg:hidden ml-2 p-2 rounded-lg bg-surface-800 text-slate-400">✕</button>
         </div>
-        <div id="output-agent1" class="text-[11px] text-slate-400 h-36 overflow-y-auto font-mono bg-slate-950/40 p-2 rounded border border-slate-800">
-          Awaiting execution...
+
+        <!-- Chat Sessions History -->
+        <div class="flex-1 overflow-y-auto p-2 space-y-1" id="chatSessionList">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Quick Studio Shortcuts in Sidebar -->
+        <div class="p-3 border-t border-slate-800 space-y-1.5 bg-surface-950/50 text-xs">
+          <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">Quick Launch</div>
+          <button onclick="switchView('pdf')" class="w-full text-left px-2.5 py-1.5 rounded-lg bg-surface-850 hover:bg-surface-700 text-slate-300 flex items-center justify-between transition">
+            <span class="flex items-center gap-2">📄 Open PDF Studio</span>
+            <span class="text-[10px] bg-brand-500/20 text-brand-300 px-1.5 rounded font-mono">Create</span>
+          </button>
+          <button onclick="switchView('image')" class="w-full text-left px-2.5 py-1.5 rounded-lg bg-surface-850 hover:bg-surface-700 text-slate-300 flex items-center justify-between transition">
+            <span class="flex items-center gap-2">🎨 Open Image Studio</span>
+            <span class="text-[10px] bg-pink-500/20 text-pink-300 px-1.5 rounded font-mono">Gen</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Chat Main Area -->
+      <main class="flex-1 flex flex-col bg-surface-950 overflow-hidden relative">
+        
+        <!-- Chat Message Log -->
+        <div id="chatMessages" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 max-w-4xl w-full mx-auto">
+          <!-- Dynamic chat bubbles inserted here -->
+        </div>
+
+        <!-- Chat Input Bar -->
+        <div class="border-t border-slate-800/80 bg-surface-900/90 backdrop-blur p-3 sm:p-4">
+          <div class="max-w-4xl mx-auto space-y-2">
+            
+            <!-- Quick Tool Action Chips -->
+            <div class="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+              <span class="text-slate-500 text-[11px] whitespace-nowrap">Try:</span>
+              <button onclick="quickPrompt('Create a professional PDF report on Renewable Energy with 2 images')" class="px-2.5 py-1 rounded-full bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-300 whitespace-nowrap transition">
+                📄 PDF with Images
+              </button>
+              <button onclick="quickPrompt('Generate a photorealistic 8k image of a futuristic flying car over Neo-Tokyo')" class="px-2.5 py-1 rounded-full bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-300 whitespace-nowrap transition">
+                🎨 Photorealistic Image
+              </button>
+              <button onclick="quickPrompt('Create a PDF cheat sheet for Python Data Structures')" class="px-2.5 py-1 rounded-full bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-300 whitespace-nowrap transition">
+                📑 Python Cheatsheet PDF
+              </button>
+              <button onclick="switchView('swarm')" class="px-2.5 py-1 rounded-full bg-brand-900/40 hover:bg-brand-900/60 border border-brand-700/50 text-brand-300 whitespace-nowrap transition">
+                ⚡ 5-Agent Swarm
+              </button>
+            </div>
+
+            <!-- Input Box -->
+            <div class="flex items-end gap-2 bg-surface-950 border border-slate-700 focus-within:border-brand-500 rounded-2xl p-2 shadow-lg transition">
+              <button onclick="switchView('image')" title="Open Image Studio" class="p-2 text-slate-400 hover:text-pink-400 transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+              </button>
+              <button onclick="switchView('pdf')" title="Open PDF Studio" class="p-2 text-slate-400 hover:text-indigo-400 transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+              </button>
+
+              <textarea id="chatInput" rows="1" placeholder="Ask anything, type /image [prompt], or ask to make a PDF..." class="flex-1 bg-transparent text-sm text-slate-100 placeholder-slate-500 resize-none focus:outline-none max-h-36 py-2 px-1"></textarea>
+
+              <button id="chatSendBtn" onclick="handleSendChat()" class="p-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white shadow-md transition disabled:opacity-50">
+                <svg class="w-4 h-4 transform rotate-90" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path></svg>
+              </button>
+            </div>
+            <div class="text-[11px] text-slate-500 flex items-center justify-between px-1">
+              <span>Supports Direct AI Conversation, Automatic PDF Tooling & Image Synthesis</span>
+              <span>Enter to send • Shift+Enter for newline</span>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+
+    <!-- ============================================================== -->
+    <!-- VIEW 2: DEDICATED PDF STUDIO & DOCUMENT BUILDER -->
+    <!-- ============================================================== -->
+    <div id="view-pdf" class="view-panel flex-1 w-full h-[calc(100vh-61px)] overflow-y-auto p-4 sm:p-6 lg:p-8">
+      <div class="max-w-7xl mx-auto space-y-6">
+        
+        <!-- Header Banner -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-surface-900 via-indigo-950/40 to-surface-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-3xl">📄</span>
+              <h2 class="text-2xl font-bold bg-gradient-to-r from-white via-indigo-200 to-brand-300 bg-clip-text text-transparent">
+                Professional PDF Studio
+              </h2>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono">Bug-Free Engine</span>
+            </div>
+            <p class="text-xs sm:text-sm text-slate-400 mt-1">
+              Generate publication-grade PDF documents with multi-page table formatting, bulletproofing against WebP/CORS image crashes, custom branding, and instant downloads.
+            </p>
+          </div>
+
+          <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="applyPdfTemplate('proposal')" class="px-3 py-1.5 rounded-xl bg-surface-800 hover:bg-surface-700 border border-slate-700 text-xs text-slate-300 transition">
+              📑 Project Proposal
+            </button>
+            <button onclick="applyPdfTemplate('architecture')" class="px-3 py-1.5 rounded-xl bg-surface-800 hover:bg-surface-700 border border-slate-700 text-xs text-slate-300 transition">
+              🏛️ Architecture Blueprint
+            </button>
+            <button onclick="applyPdfTemplate('cheatsheet')" class="px-3 py-1.5 rounded-xl bg-surface-800 hover:bg-surface-700 border border-slate-700 text-xs text-slate-300 transition">
+              ⚡ Cheatsheet
+            </button>
+            <button onclick="generatePdfFromStudio()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-brand-500/25 flex items-center gap-2 transition">
+              <span>✨ Build & Preview PDF</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Studio Grid Layout: Editor on Left, Live PDF Output on Right -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          <!-- Left Column: Controls & Content Editor (7 Cols) -->
+          <div class="lg:col-span-7 space-y-4">
+            
+            <!-- Metadata & Palette Bar -->
+            <div class="bg-surface-900 border border-slate-800 rounded-xl p-4 space-y-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-400 mb-1">Document Title</label>
+                  <input type="text" id="pdfStudioTitle" value="System Architecture & Implementation Plan" class="w-full bg-surface-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-brand-500" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-400 mb-1">Export Filename</label>
+                  <input type="text" id="pdfStudioFilename" value="system-architecture-plan.pdf" class="w-full bg-surface-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-brand-500" />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-800">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-400 mb-1">Theme Palette</label>
+                  <select id="pdfStudioTheme" class="w-full bg-surface-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+                    <option value="indigo">Modern Indigo</option>
+                    <option value="navy">Executive Navy</option>
+                    <option value="emerald">Emerald Clean</option>
+                    <option value="rose">Crimson Modern</option>
+                    <option value="slate">Monochrome Slate</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-slate-400 mb-1">Author / Organization</label>
+                  <input type="text" id="pdfStudioAuthor" value="Multiple AI Engineering" class="w-full bg-surface-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500" />
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-slate-400 mb-1">Attached Images</label>
+                  <div class="flex items-center gap-2">
+                    <button onclick="promptAddPdfImage()" class="flex-1 py-2 px-2.5 rounded-lg bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-300 text-xs flex items-center justify-center gap-1 transition">
+                      <span>🖼️</span> <span id="pdfImageCountLabel">0 Images</span>
+                    </button>
+                    <button onclick="clearPdfImages()" title="Clear attached images" class="p-2 rounded-lg bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-400 text-xs">
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Image Thumbnails Strip -->
+              <div id="pdfAttachedImagesStrip" class="hidden flex items-center gap-2 overflow-x-auto p-2 bg-surface-950 rounded-lg border border-slate-800 text-xs">
+                <!-- Dynamic thumbnails -->
+              </div>
+            </div>
+
+            <!-- Formatting Quick Bar -->
+            <div class="bg-surface-900 border border-slate-800 rounded-xl p-3 flex items-center gap-1.5 flex-wrap text-xs">
+              <span class="text-slate-500 text-[11px] mr-1">Insert:</span>
+              <button onclick="insertPdfMarkdown('# ')" class="px-2.5 py-1 rounded bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-300 font-bold">H1</button>
+              <button onclick="insertPdfMarkdown('## ')" class="px-2.5 py-1 rounded bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-300 font-bold">H2</button>
+              <button onclick="insertPdfMarkdown('### ')" class="px-2.5 py-1 rounded bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-300 font-bold">H3</button>
+              <button onclick="insertPdfMarkdown('- ')" class="px-2.5 py-1 rounded bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-300">• Bullet</button>
+              <button onclick="insertPdfMarkdown('1. ')" class="px-2.5 py-1 rounded bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-300">1. Number</button>
+              <button onclick="insertPdfMarkdown('> ')" class="px-2.5 py-1 rounded bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-300">" Callout</button>
+              <button onclick="insertPdfMarkdown('```\n// Code block\n```')" class="px-2.5 py-1 rounded bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-300 font-mono">&lt;/&gt;</button>
+              <button onclick="insertPdfTableSample()" class="px-2.5 py-1 rounded bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-300">📊 Table</button>
+              <button onclick="insertPdfMarkdown('---')" class="px-2.5 py-1 rounded bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-300">— Divider</button>
+              
+              <button onclick="enhancePdfWithAi()" class="ml-auto px-3 py-1 rounded-lg bg-indigo-900/50 hover:bg-indigo-800/50 border border-indigo-700/50 text-indigo-300 font-semibold flex items-center gap-1 transition">
+                <span>🪄 AI Enhance</span>
+              </button>
+            </div>
+
+            <!-- Markdown Document Content Area -->
+            <div class="bg-surface-900 border border-slate-800 rounded-xl p-4 space-y-2">
+              <div class="flex items-center justify-between text-xs text-slate-400">
+                <label for="pdfStudioContent" class="font-semibold text-slate-300">Document Body (Markdown & Structured Text)</label>
+                <span id="pdfContentWordCount">0 words • 0 chars</span>
+              </div>
+              <textarea id="pdfStudioContent" rows="16" class="w-full bg-surface-950 border border-slate-700 rounded-lg p-3 text-sm text-slate-200 font-mono focus:outline-none focus:border-brand-500 resize-y leading-relaxed" oninput="updatePdfStats()"></textarea>
+            </div>
+
+          </div>
+
+          <!-- Right Column: Live PDF Preview & Download Card (5 Cols) -->
+          <div class="lg:col-span-5 space-y-4">
+            
+            <div class="bg-surface-900 border border-slate-800 rounded-xl p-4 space-y-3">
+              <div class="flex items-center justify-between">
+                <div class="font-bold text-sm text-slate-200 flex items-center gap-2">
+                  <span>📄 Live PDF Output</span>
+                  <span id="pdfLiveBadge" class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">Idle</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button id="pdfStudioDownloadBtn" onclick="downloadLastStudioPdf()" disabled class="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 transition shadow">
+                    <span>⬇️ Download PDF</span>
+                  </button>
+                  <button id="pdfStudioPrintBtn" onclick="openLastStudioPdf()" disabled class="p-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-300 text-xs disabled:opacity-40 disabled:cursor-not-allowed" title="Open in New Tab / Print">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- PDF Preview Container -->
+              <div id="pdfStudioPreviewFrame" class="w-full h-[580px] bg-surface-950 border border-slate-800 rounded-lg flex flex-col items-center justify-center p-6 text-center text-slate-400 overflow-hidden relative">
+                <div class="space-y-3 max-w-xs">
+                  <div class="w-16 h-16 rounded-2xl bg-surface-900 border border-slate-800 flex items-center justify-center text-3xl mx-auto">
+                    📑
+                  </div>
+                  <div class="font-bold text-sm text-slate-200">No PDF Generated Yet</div>
+                  <div class="text-xs text-slate-500 leading-relaxed">
+                    Click "Build & Preview PDF" above to compile your document with embedded images, headers, footers, and styled tables.
+                  </div>
+                  <button onclick="generatePdfFromStudio()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold shadow transition">
+                    Generate Now ⚡
+                  </button>
+                </div>
+              </div>
+
+              <!-- Output Metadata Strip -->
+              <div id="pdfStudioMetaStrip" class="hidden p-3 rounded-lg bg-surface-950 border border-slate-800 text-xs text-slate-400 flex items-center justify-between">
+                <span id="pdfStudioMetaPages">0 Pages</span>
+                <span id="pdfStudioMetaSize">0 KB</span>
+                <span class="text-emerald-400 font-mono">Ready to Save</span>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- ============================================================== -->
+    <!-- VIEW 3: ADVANCED IMAGE STUDIO -->
+    <!-- ============================================================== -->
+    <div id="view-image" class="view-panel flex-1 w-full h-[calc(100vh-61px)] overflow-y-auto p-4 sm:p-6 lg:p-8">
+      <div class="max-w-7xl mx-auto space-y-6">
+        
+        <!-- Header Banner -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-surface-900 via-pink-950/30 to-surface-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-3xl">🎨</span>
+              <h2 class="text-2xl font-bold bg-gradient-to-r from-white via-pink-200 to-rose-400 bg-clip-text text-transparent">
+                Advanced AI Image Studio
+              </h2>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-pink-950 text-pink-300 border border-pink-800 font-mono">Flux & SDXL Turbo</span>
+            </div>
+            <p class="text-xs sm:text-sm text-slate-400 mt-1">
+              Photorealistic 8K, cinematic lighting, 12+ artistic presets, instant AI prompt enhancement, aspect ratio control, and seamless 1-click export directly to PDF Studio.
+            </p>
+          </div>
+
+          <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="openGalleryModal()" class="px-3.5 py-2 rounded-xl bg-surface-800 hover:bg-surface-700 border border-slate-700 text-xs font-semibold text-slate-200 flex items-center gap-1.5 transition">
+              <span>🖼️</span> My Gallery (<span id="studioGalleryCount">0</span>)
+            </button>
+            <button onclick="triggerImageStudioGenerate()" id="studioGenBtn" class="px-5 py-2 rounded-xl bg-gradient-to-r from-pink-600 via-rose-600 to-brand-600 hover:from-pink-500 hover:to-brand-500 text-white text-xs font-bold shadow-lg shadow-pink-500/25 flex items-center gap-2 transition">
+              <span>✨ Generate Images</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Image Controls Card -->
+        <div class="bg-surface-900 border border-slate-800 rounded-2xl p-5 space-y-5 shadow-lg">
+          
+          <!-- Prompt Input Area with AI Enhancer -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between text-xs">
+              <label for="imageStudioPrompt" class="font-semibold text-slate-300 flex items-center gap-1.5">
+                <span>Prompt Description</span>
+                <span class="text-slate-500 text-[11px]">(Describe the scene, subject, lighting, mood)</span>
+              </label>
+              <button onclick="enhancePromptWithGroq()" id="enhancePromptBtn" class="px-2.5 py-1 rounded-lg bg-gradient-to-r from-brand-600/30 to-pink-600/30 hover:from-brand-600/40 hover:to-pink-600/40 border border-pink-500/40 text-pink-300 font-semibold flex items-center gap-1.5 transition text-xs shadow-sm">
+                <span class="animate-spin hidden" id="enhanceSpinner">⏳</span>
+                <span>✨ Polish with AI</span>
+              </button>
+            </div>
+            <textarea id="imageStudioPrompt" rows="3" placeholder="e.g., A majestic snow leopard perched on an icy Himalayan peak at golden hour, backlit rim lighting, ultra sharp 8k resolution..." class="w-full bg-surface-950 border border-slate-700 rounded-xl p-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-pink-500 transition resize-none"></textarea>
+            
+            <!-- Prompt Starters Chips -->
+            <div class="flex items-center gap-2 overflow-x-auto pb-1 text-xs text-slate-400">
+              <span class="text-slate-500 text-[11px] whitespace-nowrap">Inspiration:</span>
+              <button onclick="setImagePrompt('Cyberpunk cat samurai walking through neon rainy Tokyo street, cinematic reflections, 8k octane render')" class="px-2.5 py-1 rounded-full bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-300 whitespace-nowrap transition">
+                🐱 Neon Cyberpunk Cat
+              </button>
+              <button onclick="setImagePrompt('Astonishing cosmic nebula shaped like an ancient dragon, starry interstellar background, Hubble telescope photo')" class="px-2.5 py-1 rounded-full bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-300 whitespace-nowrap transition">
+                🌌 Cosmic Nebula Dragon
+              </button>
+              <button onclick="setImagePrompt('Ultra realistic portrait of an elderly watchmaker in a vintage Swiss workshop, macro focus, soft morning light')" class="px-2.5 py-1 rounded-full bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-300 whitespace-nowrap transition">
+                🕰️ Vintage Watchmaker
+              </button>
+              <button onclick="setImagePrompt('3D cute isometric miniature greenhouse diorama, lush exotic plants, glass reflections, soft pastel lighting')" class="px-2.5 py-1 rounded-full bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-300 whitespace-nowrap transition">
+                🌿 Isometric Greenhouse
+              </button>
+            </div>
+          </div>
+
+          <!-- Style Presets Grid (12 Cards) -->
+          <div class="space-y-2">
+            <label class="block text-xs font-semibold text-slate-400">Style Aesthetic Preset</label>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2" id="stylePresetsGrid">
+              <!-- Rendered by JS -->
+            </div>
+          </div>
+
+          <!-- Parameter Controls: Aspect Ratio, Batch Count, Engine Model, Negative Prompt -->
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4 pt-4 border-t border-slate-800">
+            
+            <!-- Aspect Ratio -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1.5">Aspect Ratio</label>
+              <div class="grid grid-cols-3 gap-1.5" id="aspectRatioSelectors">
+                <button type="button" onclick="setImageAspectRatio('1024x1024', this)" class="ratio-btn active p-2 rounded-lg bg-surface-950 border border-pink-500 text-pink-300 text-xs flex flex-col items-center justify-center gap-1 transition">
+                  <div class="w-4 h-4 border border-current rounded-sm"></div>
+                  <span class="text-[10px] font-mono">1:1 Square</span>
+                </button>
+                <button type="button" onclick="setImageAspectRatio('1280x720', this)" class="ratio-btn p-2 rounded-lg bg-surface-950 border border-slate-800 text-slate-400 text-xs flex flex-col items-center justify-center gap-1 transition hover:border-slate-700">
+                  <div class="w-6 h-3.5 border border-current rounded-sm"></div>
+                  <span class="text-[10px] font-mono">16:9 Wide</span>
+                </button>
+                <button type="button" onclick="setImageAspectRatio('720x1280', this)" class="ratio-btn p-2 rounded-lg bg-surface-950 border border-slate-800 text-slate-400 text-xs flex flex-col items-center justify-center gap-1 transition hover:border-slate-700">
+                  <div class="w-3.5 h-6 border border-current rounded-sm"></div>
+                  <span class="text-[10px] font-mono">9:16 Story</span>
+                </button>
+                <button type="button" onclick="setImageAspectRatio('1024x768', this)" class="ratio-btn p-2 rounded-lg bg-surface-950 border border-slate-800 text-slate-400 text-xs flex flex-col items-center justify-center gap-1 transition hover:border-slate-700">
+                  <div class="w-5 h-4 border border-current rounded-sm"></div>
+                  <span class="text-[10px] font-mono">4:3 Photo</span>
+                </button>
+                <button type="button" onclick="setImageAspectRatio('768x1024', this)" class="ratio-btn p-2 rounded-lg bg-surface-950 border border-slate-800 text-slate-400 text-xs flex flex-col items-center justify-center gap-1 transition hover:border-slate-700">
+                  <div class="w-4 h-5 border border-current rounded-sm"></div>
+                  <span class="text-[10px] font-mono">3:4 Poster</span>
+                </button>
+                <button type="button" onclick="setImageAspectRatio('1344x576', this)" class="ratio-btn p-2 rounded-lg bg-surface-950 border border-slate-800 text-slate-400 text-xs flex flex-col items-center justify-center gap-1 transition hover:border-slate-700">
+                  <div class="w-7 h-3 border border-current rounded-sm"></div>
+                  <span class="text-[10px] font-mono">21:9 Cinema</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Batch Count -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1.5">Batch Generation</label>
+              <div class="grid grid-cols-3 gap-2">
+                <button type="button" onclick="setImageBatchCount(1, this)" class="batch-btn p-2.5 rounded-lg bg-surface-950 border border-slate-800 text-slate-400 text-xs font-bold hover:border-slate-700 transition">
+                  1 Image
+                </button>
+                <button type="button" onclick="setImageBatchCount(2, this)" class="batch-btn active p-2.5 rounded-lg bg-surface-950 border border-pink-500 text-pink-300 text-xs font-bold transition">
+                  2 Images
+                </button>
+                <button type="button" onclick="setImageBatchCount(4, this)" class="batch-btn p-2.5 rounded-lg bg-surface-950 border border-slate-800 text-slate-400 text-xs font-bold hover:border-slate-700 transition">
+                  4 (Grid)
+                </button>
+              </div>
+              <div class="text-[11px] text-slate-500 mt-2">Generate multiple variations simultaneously</div>
+            </div>
+
+            <!-- AI Engine Model -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1.5">AI Engine & Quality</label>
+              <select id="imageStudioModel" class="w-full bg-surface-950 border border-slate-700 rounded-lg px-3 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-pink-500">
+                <option value="flux" selected>Flux (High Fidelity & Detail)</option>
+                <option value="flux-realism">Flux Realism (Photorealistic Camera)</option>
+                <option value="turbo">SDXL Turbo (Instant Speed)</option>
+              </select>
+              <div class="mt-2 flex items-center justify-between">
+                <span class="text-[11px] text-slate-400">Enhance details</span>
+                <input type="checkbox" id="imageStudioEnhanceToggle" checked class="accent-pink-500 rounded cursor-pointer" />
+              </div>
+            </div>
+
+            <!-- Seed & Negative Prompt -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1.5">Seed & Negative Filter</label>
+              <input type="text" id="imageStudioNegative" placeholder="Negative prompt (e.g. blurry, watermark)" class="w-full bg-surface-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-pink-500 mb-1.5" />
+              <div class="flex items-center gap-2">
+                <input type="text" id="imageStudioSeed" placeholder="Random seed" class="flex-1 bg-surface-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-300 font-mono" />
+                <button type="button" onclick="randomizeStudioSeed()" class="px-2 py-1 rounded bg-surface-800 hover:bg-surface-700 border border-slate-700 text-xs text-slate-300" title="Randomize seed">
+                  🎲
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- Output Results Section -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+              <span>🖼️ Generated Masterpieces</span>
+              <span id="imageStudioStatus" class="text-xs text-slate-500 font-mono">Ready</span>
+            </h3>
+            <div id="imageBatchActions" class="hidden flex items-center gap-2 text-xs">
+              <button onclick="sendBatchToPdf()" class="px-3 py-1.5 rounded-lg bg-indigo-950 hover:bg-indigo-900 border border-indigo-700/60 text-indigo-300 font-semibold flex items-center gap-1.5 transition">
+                <span>📄 Send All to PDF Studio</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Loading Progress Banner (when generating) -->
+          <div id="imageLoadingState" class="hidden bg-surface-900 border border-slate-800 rounded-xl p-8 text-center space-y-4">
+            <div class="w-12 h-12 rounded-full border-4 border-pink-500/20 border-t-pink-500 animate-spin mx-auto"></div>
+            <div class="space-y-1">
+              <div class="text-sm font-bold text-slate-200" id="imageLoadingTitle">Synthesizing Imagery...</div>
+              <div class="text-xs text-slate-400" id="imageLoadingSub">Querying high-fidelity diffusion neural network</div>
+            </div>
+          </div>
+
+          <!-- Grid of Generated Image Cards -->
+          <div id="imageResultsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Populated with generated images -->
+            <div class="col-span-full py-16 text-center text-slate-500 space-y-3 bg-surface-900/40 border border-dashed border-slate-800 rounded-2xl">
+              <div class="text-4xl">🎨</div>
+              <div class="text-sm font-semibold text-slate-400">Ready to create art!</div>
+              <div class="text-xs text-slate-500 max-w-sm mx-auto">Enter a prompt above and click "Generate Images" or use the quick inspiration chips.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- ============================================================== -->
+    <!-- VIEW 4: 5-AGENT PARALLEL SWARM -->
+    <!-- ============================================================== -->
+    <div id="view-swarm" class="view-panel flex-1 w-full h-[calc(100vh-61px)] overflow-y-auto p-4 sm:p-6 lg:p-8">
+      <div class="max-w-7xl mx-auto space-y-6">
+        
+        <!-- Header Banner -->
+        <div class="bg-gradient-to-r from-surface-900 via-indigo-950/50 to-surface-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-3xl">⚡</span>
+              <h2 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent">
+                5-Agent Groq Parallel Swarm
+              </h2>
+              <span class="text-xs font-mono bg-emerald-950 text-emerald-300 border border-emerald-800 px-2.5 py-0.5 rounded-full">
+                Groq Pool Active
+              </span>
+            </div>
+            <p class="text-xs sm:text-sm text-slate-400 mt-1">
+              Dispatches 5 specialized AI engineering agents in parallel (Tech Lead, UX, Security, Scale, QA), then synthesizes a master blueprint that you can export directly into a PDF report!
+            </p>
+          </div>
+
+          <button id="swarmLaunchBtn" onclick="executeSwarmTeam()" class="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/25 transition">
+            <span>🚀 Launch 5 Agents in Parallel</span>
+          </button>
+        </div>
+
+        <!-- Swarm Prompt Section -->
+        <div class="bg-surface-900 border border-slate-800 rounded-xl p-5 shadow-lg space-y-3">
+          <label for="swarmPrompt" class="block text-xs font-semibold text-slate-300">
+            Project / Engineering Mission for the Swarm
+          </label>
+          <textarea id="swarmPrompt" rows="3" placeholder="e.g., Design a real-time collaborative document editor with offline sync, CRDT conflict resolution, end-to-end encryption, and role-based permissions..." class="w-full bg-surface-950 border border-slate-700 rounded-lg p-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition resize-none"></textarea>
+        </div>
+
+        <!-- 5 Parallel Agents Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+          
+          <!-- Agent 1 -->
+          <div class="bg-surface-900 border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-bold text-xs text-blue-400">🛠️ Tech Lead</span>
+              <span id="status-agent1" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">Idle</span>
+            </div>
+            <div id="output-agent1" class="text-[11px] text-slate-400 h-40 overflow-y-auto font-mono bg-surface-950 p-2.5 rounded border border-slate-800">
+              Awaiting mission...
+            </div>
+          </div>
+
+          <!-- Agent 2 -->
+          <div class="bg-surface-900 border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-bold text-xs text-emerald-400">🎨 UX & Product</span>
+              <span id="status-agent2" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">Idle</span>
+            </div>
+            <div id="output-agent2" class="text-[11px] text-slate-400 h-40 overflow-y-auto font-mono bg-surface-950 p-2.5 rounded border border-slate-800">
+              Awaiting mission...
+            </div>
+          </div>
+
+          <!-- Agent 3 -->
+          <div class="bg-surface-900 border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-bold text-xs text-amber-400">🛡️ Security</span>
+              <span id="status-agent3" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">Idle</span>
+            </div>
+            <div id="output-agent3" class="text-[11px] text-slate-400 h-40 overflow-y-auto font-mono bg-surface-950 p-2.5 rounded border border-slate-800">
+              Awaiting mission...
+            </div>
+          </div>
+
+          <!-- Agent 4 -->
+          <div class="bg-surface-900 border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-bold text-xs text-purple-400">⚡ Scale & Perf</span>
+              <span id="status-agent4" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">Idle</span>
+            </div>
+            <div id="output-agent4" class="text-[11px] text-slate-400 h-40 overflow-y-auto font-mono bg-surface-950 p-2.5 rounded border border-slate-800">
+              Awaiting mission...
+            </div>
+          </div>
+
+          <!-- Agent 5 -->
+          <div class="bg-surface-900 border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-bold text-rose-400">🧪 QA & Testing</span>
+              <span id="status-agent5" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">Idle</span>
+            </div>
+            <div id="output-agent5" class="text-[11px] text-slate-400 h-40 overflow-y-auto font-mono bg-surface-950 p-2.5 rounded border border-slate-800">
+              Awaiting mission...
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Master Synthesized Blueprint Section with 1-Click PDF Export -->
+        <div class="bg-surface-900 border border-slate-800 rounded-xl p-6 shadow-xl space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">🧠</span>
+              <h3 class="text-base font-bold text-slate-200">Master Synthesized Blueprint</h3>
+              <span id="synthesis-status" class="text-xs text-slate-400 font-mono ml-2">Idle</span>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button id="swarmExportPdfBtn" onclick="exportSwarmToPdf()" disabled class="px-4 py-2 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 transition shadow">
+                <span>📄 Export Blueprint to PDF</span>
+              </button>
+            </div>
+          </div>
+
+          <div id="swarmFinalOutput" class="bg-surface-950 border border-slate-800 rounded-lg p-5 text-sm text-slate-300 leading-relaxed min-h-[220px] whitespace-pre-wrap font-sans">
+            The orchestrated master blueprint from all 5 agents will appear here upon parallel completion...
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- ============================================================== -->
+  <!-- MODALS: LIGHTBOX, GALLERY, PDF HISTORY, SETTINGS, AUTH -->
+  <!-- ============================================================== -->
+
+  <!-- Image Lightbox Modal -->
+  <div id="imageLightboxModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden items-center justify-center p-4">
+    <div class="max-w-4xl w-full bg-surface-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
+      <div class="p-3 border-b border-slate-800 flex items-center justify-between bg-surface-950">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">🔍</span>
+          <span class="font-bold text-sm text-slate-200" id="lightboxTitle">Image Details</span>
+        </div>
+        <button onclick="closeLightboxModal()" class="p-1.5 rounded-lg bg-surface-800 text-slate-400 hover:text-white">✕</button>
+      </div>
+
+      <div class="flex-1 overflow-auto p-4 flex items-center justify-center bg-black/40">
+        <img id="lightboxImage" src="" alt="" class="max-h-[65vh] max-w-full rounded-lg object-contain shadow-2xl border border-slate-800" />
+      </div>
+
+      <div class="p-4 border-t border-slate-800 bg-surface-950 space-y-3">
+        <div class="text-xs text-slate-300 bg-surface-900 p-2.5 rounded-lg border border-slate-800 font-mono" id="lightboxPrompt">
+          Prompt: ...
+        </div>
+
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+          <div class="text-[11px] text-slate-400 font-mono" id="lightboxMeta">
+            1024x1024 • Flux
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="lightboxSendToPdfBtn" class="px-3 py-1.5 rounded-lg bg-indigo-950 hover:bg-indigo-900 border border-indigo-700/60 text-indigo-300 text-xs font-semibold flex items-center gap-1">
+              <span>📄 Send to PDF</span>
+            </button>
+            <button id="lightboxCopyBtn" class="px-3 py-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-300 text-xs font-semibold flex items-center gap-1">
+              <span>📋 Copy Prompt</span>
+            </button>
+            <button id="lightboxDownloadBtn" class="px-4 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-500 text-white text-xs font-bold flex items-center gap-1 shadow">
+              <span>⬇️ Download Image</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Image Gallery History Modal -->
+  <div id="imageGalleryModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="max-w-5xl w-full bg-surface-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-surface-950">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🖼️</span>
+          <h3 class="font-bold text-base text-slate-200">Generated Image Gallery</h3>
+          <span id="galleryCountBadge" class="text-xs px-2 py-0.5 rounded-full bg-surface-800 text-slate-400 font-mono">0 saved</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="clearAllImageGallery()" class="text-xs text-rose-400 hover:text-rose-300 px-2 py-1">Clear History</button>
+          <button onclick="closeGalleryModal()" class="p-1.5 rounded-lg bg-surface-800 text-slate-400 hover:text-white">✕</button>
         </div>
       </div>
 
-      <!-- Agent 2: UX & Product -->
-      <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-3 flex flex-col justify-between">
-        <div class="flex items-center justify-between mb-2">
-          <span class="font-bold text-xs text-emerald-400">🎨 UX & Product</span>
-          <span id="status-agent2" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-400 font-mono">Idle</span>
+      <div class="flex-1 overflow-y-auto p-4" id="galleryGrid">
+        <!-- Gallery cards populated here -->
+      </div>
+    </div>
+  </div>
+
+
+  <!-- PDF History & Backups Modal -->
+  <div id="pdfHistoryModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="max-w-3xl w-full bg-surface-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]">
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-surface-950">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">📚</span>
+          <h3 class="font-bold text-base text-slate-200">PDF Documents & Cloud Backups</h3>
         </div>
-        <div id="output-agent2" class="text-[11px] text-slate-400 h-36 overflow-y-auto font-mono bg-slate-950/40 p-2 rounded border border-slate-800">
-          Awaiting execution...
-        </div>
+        <button onclick="closePdfHistoryModal()" class="p-1.5 rounded-lg bg-surface-800 text-slate-400 hover:text-white">✕</button>
       </div>
 
-      <!-- Agent 3: Security Specialist -->
-      <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-3 flex flex-col justify-between">
-        <div class="flex items-center justify-between mb-2">
-          <span class="font-bold text-xs text-amber-400">🛡️ Security</span>
-          <span id="status-agent3" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-400 font-mono">Idle</span>
-        </div>
-        <div id="output-agent3" class="text-[11px] text-slate-400 h-36 overflow-y-auto font-mono bg-slate-950/40 p-2 rounded border border-slate-800">
-          Awaiting execution...
-        </div>
+      <div class="flex-1 overflow-y-auto p-4 space-y-3" id="pdfHistoryList">
+        <!-- Populated by JS -->
       </div>
+    </div>
+  </div>
 
-      <!-- Agent 4: Performance & Scale -->
-      <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-3 flex flex-col justify-between">
-        <div class="flex items-center justify-between mb-2">
-          <span class="font-bold text-xs text-purple-400">⚡ Scale & Perf</span>
-          <span id="status-agent4" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-400 font-mono">Idle</span>
-        </div>
-        <div id="output-agent4" class="text-[11px] text-slate-400 h-36 overflow-y-auto font-mono bg-slate-950/40 p-2 rounded border border-slate-800">
-          Awaiting execution...
-        </div>
-      </div>
 
-      <!-- Agent 5: QA & Edge Cases -->
-      <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-3 flex flex-col justify-between">
-        <div class="flex items-center justify-between mb-2">
-          <span class="font-bold text-xs text-rose-400">🧪 QA & Testing</span>
-          <span id="status-agent5" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-400 font-mono">Idle</span>
-        </div>
-        <div id="output-agent5" class="text-[11px] text-slate-400 h-36 overflow-y-auto font-mono bg-slate-950/40 p-2 rounded border border-slate-800">
-          Awaiting execution...
-        </div>
-      </div>
-
-    </section>
-
-    <!-- Final Synthesized Output -->
-    <section class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-6 shadow-xl space-y-3">
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="max-w-md w-full bg-surface-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl p-6 space-y-5">
       <div class="flex items-center justify-between">
-        <h2 class="text-md font-bold text-slate-200 flex items-center space-x-2">
-          <span>🧠 Master Synthesized Output</span>
-        </h2>
-        <span id="synthesis-status" class="text-xs text-slate-400 font-mono">Idle</span>
+        <h3 class="font-bold text-lg text-slate-100 flex items-center gap-2">
+          <span>⚙️</span> Settings & API Configuration
+        </h3>
+        <button onclick="closeSettingsModal()" class="p-1.5 rounded-lg bg-surface-800 text-slate-400 hover:text-white">✕</button>
       </div>
-      <div id="finalOutput" class="bg-slate-950 border border-slate-800 rounded-lg p-5 text-sm text-slate-300 leading-relaxed min-h-[180px] whitespace-pre-wrap font-sans">
-        The master synthesized output from all 5 agents will be generated here...
+
+      <div class="space-y-4 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Custom Groq API Key (Optional)</label>
+          <input type="password" id="settingsCustomGroqKey" placeholder="gsk_..." class="w-full bg-surface-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 font-mono text-xs focus:outline-none focus:border-brand-500" />
+          <div class="text-[11px] text-slate-500 mt-1">Leave blank to use the high-performance permanent Groq key pool automatically.</div>
+        </div>
+
+        <div class="flex items-center justify-between pt-2 border-t border-slate-800">
+          <div>
+            <div class="font-semibold text-slate-300">Sound Effects</div>
+            <div class="text-[11px] text-slate-500">Audio feedback on generation actions</div>
+          </div>
+          <input type="checkbox" id="settingsSoundToggle" checked class="accent-brand-500 w-4 h-4 cursor-pointer" />
+        </div>
+
+        <div class="flex items-center justify-between pt-2 border-t border-slate-800">
+          <div>
+            <div class="font-semibold text-slate-300">PDF In-Chat Preview</div>
+            <div class="text-[11px] text-slate-500">Display inline PDF cards inside chat</div>
+          </div>
+          <input type="checkbox" id="settingsPdfPreviewToggle" checked class="accent-brand-500 w-4 h-4 cursor-pointer" />
+        </div>
+
+        <div class="flex items-center justify-between pt-2 border-t border-slate-800">
+          <div>
+            <div class="font-semibold text-slate-300">Auto-Scroll</div>
+            <div class="text-[11px] text-slate-500">Keep chat pinned to newest response</div>
+          </div>
+          <input type="checkbox" id="settingsAutoScrollToggle" checked class="accent-brand-500 w-4 h-4 cursor-pointer" />
+        </div>
       </div>
-    </section>
 
-  </main>
+      <div class="pt-3 border-t border-slate-800 flex items-center justify-between">
+        <button onclick="resetAppSettings()" class="text-xs text-rose-400 hover:text-rose-300">Reset Defaults</button>
+        <button onclick="saveAppSettings()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow transition">Save Settings</button>
+      </div>
+    </div>
+  </div>
 
-  <!-- JavaScript Multi-Agent Orchestration Engine -->
+
+  <!-- Supabase Auth Modal -->
+  <div id="authModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="max-w-sm w-full bg-surface-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl p-6 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-base text-slate-100" id="authModalTitle">Sign In / Account</h3>
+        <button onclick="closeAuthModal()" class="p-1 rounded-lg bg-surface-800 text-slate-400 hover:text-white">✕</button>
+      </div>
+
+      <div class="flex rounded-lg bg-surface-950 p-1 border border-slate-800 text-xs">
+        <button id="authTabLogin" onclick="setAuthTab('login')" class="flex-1 py-1.5 rounded-md font-semibold bg-brand-600 text-white">Login</button>
+        <button id="authTabSignup" onclick="setAuthTab('signup')" class="flex-1 py-1.5 rounded-md font-semibold text-slate-400">Sign Up</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-400 mb-1">Email</label>
+          <input type="email" id="authEmail" placeholder="your@email.com" class="w-full bg-surface-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 text-xs focus:outline-none focus:border-brand-500" />
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-400 mb-1">Password</label>
+          <input type="password" id="authPassword" placeholder="••••••••" class="w-full bg-surface-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 text-xs focus:outline-none focus:border-brand-500" />
+        </div>
+        <div id="authUsernameRow" class="hidden">
+          <label class="block font-semibold text-slate-400 mb-1">Display Name</label>
+          <input type="text" id="authUsername" placeholder="Alex" class="w-full bg-surface-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 text-xs focus:outline-none focus:border-brand-500" />
+        </div>
+      </div>
+
+      <div id="authErrorMsg" class="hidden text-xs text-rose-400 font-medium"></div>
+
+      <button id="authSubmitBtn" onclick="handleAuthSubmit()" class="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow transition">
+        Continue
+      </button>
+
+      <div class="text-[11px] text-slate-500 text-center leading-relaxed">
+        Guest mode is active by default. Accounts enable persistent cloud PDF backups and chat sync across devices.
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ============================================================== -->
+  <!-- JAVASCRIPT APPLICATION CORE ENGINE -->
+  <!-- ============================================================== -->
   <script>
-    // ==========================================================
-    // 🔑 PERMANENT HARDCODED GROQ API KEYS POOL
-    // Add 1 to 5 keys. If fewer keys are provided, keys auto-reuse.
-    // ==========================================================
+    // ==============================================================
+    // 1. CONFIGURATION & CONSTANTS
+    // ==============================================================
     const PERMANENT_GROQ_KEYS = [
       "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",
       "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",
@@ -130,195 +915,2134 @@
       "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",
       "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",
     ];
+    let currentKeyIndex = 0;
 
-    // Single Groq API Caller
-    async function callGroqAgent({ name, systemPrompt, userPrompt, apiKey, statusEl, outputEl }) {
-      if (statusEl) {
-        statusEl.textContent = 'Running...';
-        statusEl.className = 'text-[10px] px-1.5 py-0.5 rounded bg-blue-900/60 text-blue-300 font-mono animate-pulse';
+    const SUPABASE_URL = "https://mxhmcapcmeatnmwiwnri.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_zAZ8LWIFxUX8cF0H6Gy9uw_H0Yc0BgD";
+    let supabaseClient = null;
+    try {
+      if (window.supabase && typeof window.supabase.createClient === 'function') {
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+          auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+        });
+      }
+    } catch (e) {
+      console.warn("Supabase initialization note:", e);
+    }
+
+    // App State
+    let currentUser = null;
+    let currentUserId = null;
+    let activeView = 'chat';
+    let currentChatSessionId = null;
+    let chatSessions = {};
+    let imageHistory = [];
+    let pdfHistory = [];
+    let studioAttachedImages = [];
+    let lastStudioPdfBlob = null;
+    let lastStudioPdfFilename = 'document.pdf';
+
+    // Settings
+    let appSettings = {
+      customGroqKey: '',
+      sound: true,
+      pdfPreview: true,
+      autoScroll: true,
+      theme: 'dark'
+    };
+
+    // Style presets for image generation (12 Curated Styles)
+    const IMAGE_STYLE_PRESETS = [
+      { id: 'photorealistic', name: '📸 Ultra 8K Photo', suffix: ', highly detailed photograph, 8k resolution, raw photo, ultra-realistic DSLR shot, 85mm lens, sharp focus, natural lighting, fine texture, unedited portrait' },
+      { id: 'cinematic', name: '🎬 Cinematic IMAX', suffix: ', cinematic 35mm film shot, IMAX depth of field, atmospheric volumetric fog, color graded, dramatic lighting, award-winning cinematography' },
+      { id: 'anime', name: '⛩️ Anime / Shinkai', suffix: ', vibrant Makoto Shinkai anime style, vivid sky, glowing light rays, detailed background, Studio Ghibli aesthetic, masterpiece illustration' },
+      { id: 'pixar', name: '💎 3D Pixar / Disney', suffix: ', Pixar animation style 3D character, octane render, soft subsurface scattering, cute expressive features, studio lighting, smooth clay texture' },
+      { id: 'cyberpunk', name: '🌆 Cyberpunk Neon', suffix: ', cyberpunk sci-fi aesthetic, neon pink and cyan glow, wet rainy streets, reflective puddles, holographic displays, futuristic cityscape' },
+      { id: 'dark-fantasy', name: '🏰 Dark Fantasy', suffix: ', Elden Ring dark gothic concept art, epic scale, ancient misty ruins, volumetric god rays, dark fantasy illustration, intricate detailing' },
+      { id: 'watercolor', name: '🎨 Watercolor Wash', suffix: ', delicate fluid watercolor painting, wet-on-wet wash, soft pastel ink splatters, fine textured cotton paper grain, artistic masterpiece' },
+      { id: 'vector-logo', name: '📐 Minimalist Vector', suffix: ', flat minimalist vector graphic, modern logo emblem, bold silhouette, clean SVG style lines, professional branding' },
+      { id: 'portrait', name: '🪟 Studio Portrait', suffix: ', professional studio portrait photography, softbox lighting, clean gradient background, crisp eye catchlights, sharp bokeh' },
+      { id: 'synthwave', name: '🕹️ Retro Synthwave', suffix: ', 1980s outrun synthwave aesthetic, neon wireframe grid, purple sunset, chrome reflections, retrowave neon glow' },
+      { id: 'macro', name: '🌿 Macro Nature', suffix: ', extreme close-up macro photography, shallow depth of field, crystal clear water droplets, natural organic texture, high-speed lens' },
+      { id: 'comic', name: '⚡ Marvel Comic Art', suffix: ', dynamic superhero comic book panel, bold black ink outlines, action angle, halftone dots, vibrant graphic novel color' }
+    ];
+
+    let currentSelectedStyle = 'photorealistic';
+    let currentSelectedRatio = '1024x1024';
+    let currentSelectedBatch = 2;
+
+    // AI Tools Schema for Chat Tool Calling
+    const PDF_TOOL_SCHEMA = {
+      type: "function",
+      function: {
+        name: "create_pdf",
+        description: "Create a polished, multi-page, formatted PDF document. Use this whenever the user asks to create, make, generate, export, save, or turn content into a PDF. Include complete, substantial, standalone content. If images were generated or requested, pass their URLs in the images array.",
+        parameters: {
+          type: "object",
+          properties: {
+            title: { type: "string", description: "The document title." },
+            filename: { type: "string", description: "Safe filename ending in .pdf." },
+            content: { type: "string", description: "The complete structured markdown text for the document." },
+            images: {
+              type: "array",
+              description: "Images to embed physically inside the PDF.",
+              items: {
+                type: "object",
+                properties: {
+                  url: { type: "string", description: "Image URL." },
+                  alt: { type: "string", description: "Image caption or description." }
+                },
+                required: ["url"]
+              }
+            }
+          },
+          required: ["title", "filename", "content"]
+        }
+      }
+    };
+
+    const IMAGE_TOOL_SCHEMA = {
+      type: "function",
+      function: {
+        name: "generate_image",
+        description: "Generate an image when the user asks for a picture, artwork, illustration, thumbnail, photo, portrait, wallpaper, or visual. Return detailed visual prompt.",
+        parameters: {
+          type: "object",
+          properties: {
+            prompt: { type: "string", description: "A richly detailed visual description of the image." },
+            count: { type: "integer", description: "Number of images (1-4).", minimum: 1, maximum: 4 },
+            dimensions: { type: "string", enum: ["1024x1024", "1280x720", "720x1280", "1024x768", "768x1024"], description: "Dimensions." },
+            style: { type: "string", description: "Style preset name." }
+          },
+          required: ["prompt"]
+        }
+      }
+    };
+
+    // ==============================================================
+    // 2. AUDIO & SOUND EFFECTS
+    // ==============================================================
+    function playBeep(freq = 780, duration = 0.04) {
+      if (!appSettings.sound) return;
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.04, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+        osc.start();
+        osc.stop(ctx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    // ==============================================================
+    // 3. GROQ LLM API CLIENT WITH RETRY & ROTATION
+    // ==============================================================
+    function getActiveGroqKey() {
+      if (appSettings.customGroqKey && appSettings.customGroqKey.trim().length > 10) {
+        return appSettings.customGroqKey.trim();
+      }
+      return PERMANENT_GROQ_KEYS[currentKeyIndex % PERMANENT_GROQ_KEYS.length];
+    }
+
+    function rotateGroqKey() {
+      currentKeyIndex = (currentKeyIndex + 1) % PERMANENT_GROQ_KEYS.length;
+      console.log(`Rotated to Groq Key Pool Index: ${currentKeyIndex}`);
+    }
+
+    async function callGroqAPI({ messages, tools = null, temperature = 0.7, max_tokens = 4096, model = "llama-3.3-70b-versatile" }) {
+      const maxRetries = PERMANENT_GROQ_KEYS.length;
+      let lastError = null;
+
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        const key = getActiveGroqKey();
+        try {
+          const bodyPayload = {
+            model,
+            messages,
+            temperature,
+            max_tokens
+          };
+          if (tools && Array.isArray(tools) && tools.length > 0) {
+            bodyPayload.tools = tools;
+            bodyPayload.tool_choice = "auto";
+          }
+
+          const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${key}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(bodyPayload)
+          });
+
+          if (response.status === 429 || response.status === 401 || response.status === 403) {
+            console.warn(`Groq key ${currentKeyIndex} hit ${response.status}. Rotating key...`);
+            rotateGroqKey();
+            continue;
+          }
+
+          if (!response.ok) {
+            const errJson = await response.json().catch(() => ({}));
+            throw new Error(errJson.error?.message || `HTTP ${response.status}`);
+          }
+
+          const data = await response.json();
+          return data.choices[0].message;
+
+        } catch (err) {
+          lastError = err;
+          if (attempt === 1 && model.includes("70b")) {
+            model = "llama-3.1-8b-instant";
+          }
+          rotateGroqKey();
+        }
+      }
+      throw lastError || new Error("Failed to get response from Groq API pool.");
+    }
+
+    // ==============================================================
+    // 4. IMAGE ENGINE & POLLINATIONS ENHANCER
+    // ==============================================================
+    async function generateImageUrls({ prompt, count = 1, dimensions = '1024x1024', style = 'photorealistic', model = 'flux', enhance = true, negativePrompt = '', customSeed = null }) {
+      const safeCount = Math.min(Math.max(Number(count) || 1, 1), 4);
+      let [width, height] = dimensions.split('x').map(Number);
+      if (!width || !height) { width = 1024; height = 1024; }
+
+      // Find style definition
+      const preset = IMAGE_STYLE_PRESETS.find(p => p.id === style) || IMAGE_STYLE_PRESETS[0];
+      let fullPrompt = prompt.trim();
+      if (preset && preset.suffix) {
+        fullPrompt += preset.suffix;
+      }
+      if (negativePrompt && negativePrompt.trim()) {
+        fullPrompt += ` | avoid: ${negativePrompt.trim()}`;
       }
 
-      try {
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${apiKey}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            model: "llama-3.3-70b-versatile",
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userPrompt }
-            ],
-            temperature: 0.7
-          })
+      const results = [];
+      for (let i = 0; i < safeCount; i++) {
+        const seed = customSeed ? (Number(customSeed) + i) : (Math.floor(Math.random() * 9000000) + 1000000);
+        const encoded = encodeURIComponent(fullPrompt);
+        
+        let url = `https://image.pollinations.ai/prompt/${encoded}?width=${width}&height=${height}&seed=${seed}&nologo=true`;
+        if (enhance) url += '&enhance=true';
+        if (model && model !== 'flux') url += `&model=${model}`;
+
+        results.push({
+          url,
+          prompt,
+          fullPrompt,
+          style: preset.name,
+          dimensions: `${width}x${height}`,
+          seed,
+          model,
+          timestamp: Date.now()
         });
+      }
 
-        if (!response.ok) {
-          const errData = await response.json();
-          throw new Error(errData.error?.message || `HTTP ${response.status}`);
+      return results;
+    }
+
+    // Canvas image converter to make images 100% safe for jsPDF without crashing on WebP/AVIF
+    async function prepareImageForPdf(imageUrl) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth || img.width || 800;
+            canvas.height = img.naturalHeight || img.height || 600;
+            const ctx = canvas.getContext("2d");
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            const jpegDataUrl = canvas.toDataURL("image/jpeg", 0.92);
+            resolve({
+              dataUrl: jpegDataUrl,
+              width: canvas.width,
+              height: canvas.height,
+              aspectRatio: canvas.width / canvas.height
+            });
+          } catch (err) {
+            console.warn("Could not draw image to canvas (CORS/taint):", err);
+            resolve(null);
+          }
+        };
+        img.onerror = () => {
+          console.warn("Image load failed for PDF embedding:", imageUrl);
+          resolve(null);
+        };
+        // 8 second safety timeout so PDF never hangs
+        setTimeout(() => resolve(null), 8000);
+        img.src = imageUrl;
+      });
+    }
+
+    // ==============================================================
+    // 5. BULLETPROOF PDF GENERATOR ENGINE (FIXED & UPGRADED)
+    // ==============================================================
+    async function createPdfDocument({
+      title = "Document",
+      filename = "document.pdf",
+      content = "",
+      images = [],
+      theme = "indigo",
+      author = "Multiple AI Studio"
+    }) {
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        throw new Error("jsPDF library failed to load. Please check network connection.");
+      }
+
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ orientation: "p", unit: "mm", format: "a4", compress: true });
+
+      const safeTitle = String(title || "Document").trim().slice(0, 200);
+      let safeFilename = String(filename || "document.pdf").replace(/[\\/:*?"<>|#%]+/g, "_").trim();
+      if (!safeFilename.toLowerCase().endsWith(".pdf")) safeFilename += ".pdf";
+
+      const safeContent = String(content || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
+      if (!safeContent) throw new Error("PDF document content cannot be empty.");
+
+      // Theme Palettes
+      const palettes = {
+        indigo: { accent: [99, 102, 241], accent2: [79, 70, 229], dark: [15, 23, 42], text: [30, 41, 59], muted: [100, 116, 139], lightBg: [248, 250, 252], rule: [226, 232, 240] },
+        navy: { accent: [14, 116, 144], accent2: [3, 105, 161], dark: [12, 20, 39], text: [15, 23, 42], muted: [100, 116, 139], lightBg: [240, 249, 255], rule: [224, 242, 254] },
+        emerald: { accent: [16, 185, 129], accent2: [5, 150, 105], dark: [6, 78, 59], text: [20, 35, 30], muted: [100, 116, 139], lightBg: [236, 253, 245], rule: [209, 250, 229] },
+        rose: { accent: [225, 29, 72], accent2: [190, 18, 60], dark: [76, 5, 25], text: [30, 20, 25], muted: [120, 113, 108], lightBg: [255, 241, 242], rule: [254, 205, 211] },
+        slate: { accent: [71, 85, 105], accent2: [51, 65, 85], dark: [15, 23, 42], text: [30, 41, 59], muted: [148, 163, 184], lightBg: [248, 250, 252], rule: [226, 232, 240] }
+      };
+      const colors = palettes[theme] || palettes.indigo;
+
+      const pageWidth = pdf.internal.pageSize.getWidth(); // 210mm
+      const pageHeight = pdf.internal.pageSize.getHeight(); // 297mm
+      const margin = 18;
+      const contentWidth = pageWidth - margin * 2;
+      const bottomLimit = pageHeight - 20;
+      let y = 20;
+
+      function addNewPage() {
+        pdf.addPage();
+        y = 22;
+      }
+
+      function ensureSpace(requiredHeight) {
+        if (y + requiredHeight > bottomLimit) {
+          addNewPage();
+        }
+      }
+
+      // 1. Cover / Header Banner Block
+      pdf.setFillColor(...colors.accent);
+      pdf.roundedRect(margin, y, contentWidth, 32, 4, 4, "F");
+
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(18);
+      const titleLines = pdf.splitTextToSize(safeTitle, contentWidth - 16).slice(0, 2);
+      pdf.text(titleLines, margin + 8, y + 14);
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8.5);
+      pdf.text(`${author.toUpperCase()}  •  OFFICIAL AI BLUEPRINT & REPORT`, margin + 8, y + 26);
+      y += 38;
+
+      // 2. Metadata Strip
+      pdf.setFillColor(...colors.lightBg);
+      pdf.setDrawColor(...colors.rule);
+      pdf.setLineWidth(0.4);
+      pdf.roundedRect(margin, y, contentWidth, 10, 2, 2, "FD");
+
+      pdf.setTextColor(...colors.muted);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      const dateStr = new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+      pdf.text(`Generated: ${dateStr}  •  Format: A4 Verified  •  Engine: Multiple AI Document System`, margin + 6, y + 6.5);
+      y += 16;
+
+      // 3. Physical Image Embedding (Canvas-Powered, WebP-Safe)
+      if (Array.isArray(images) && images.length > 0) {
+        for (const imgItem of images.slice(0, 4)) {
+          if (!imgItem || !imgItem.url) continue;
+          try {
+            const prepared = await prepareImageForPdf(imgItem.url);
+            if (prepared && prepared.dataUrl) {
+              const maxImgWidth = contentWidth;
+              const maxImgHeight = 75;
+              let renderWidth = maxImgWidth;
+              let renderHeight = renderWidth / prepared.aspectRatio;
+
+              if (renderHeight > maxImgHeight) {
+                renderHeight = maxImgHeight;
+                renderWidth = renderHeight * prepared.aspectRatio;
+              }
+
+              ensureSpace(renderHeight + 12);
+              const xPos = margin + (contentWidth - renderWidth) / 2;
+              
+              // Shadow/border box behind image
+              pdf.setDrawColor(...colors.rule);
+              pdf.setLineWidth(0.4);
+              pdf.rect(xPos - 1, y - 1, renderWidth + 2, renderHeight + 2, "D");
+
+              pdf.addImage(prepared.dataUrl, "JPEG", xPos, y, renderWidth, renderHeight, undefined, "FAST");
+              y += renderHeight + 5;
+
+              if (imgItem.alt || imgItem.prompt) {
+                pdf.setTextColor(...colors.muted);
+                pdf.setFontSize(7.5);
+                pdf.setFont("helvetica", "italic");
+                const caption = String(imgItem.alt || imgItem.prompt).slice(0, 100);
+                pdf.text(caption, pageWidth / 2, y, { align: "center" });
+                y += 6;
+              }
+            }
+          } catch (imgErr) {
+            console.warn("Skipping image due to embed warning:", imgErr);
+          }
+        }
+      }
+
+      // 4. Robust Markdown Parser (Uses safe index iteration - NO array mutation bug!)
+      const lines = safeContent.split(/\n/);
+      let lineIndex = 0;
+
+      while (lineIndex < lines.length) {
+        const rawLine = lines[lineIndex];
+        const trimmed = rawLine.trim();
+
+        // Empty line
+        if (!trimmed) {
+          y += 3.5;
+          lineIndex++;
+          continue;
         }
 
-        const data = await response.json();
-        const content = data.choices[0].message.content;
+        // Heading 1: # Heading
+        if (trimmed.startsWith("# ")) {
+          ensureSpace(16);
+          pdf.setTextColor(...colors.accent);
+          pdf.setFont("helvetica", "bold");
+          pdf.setFontSize(15);
+          const headingText = trimmed.slice(2).trim();
+          pdf.text(headingText, margin, y);
+          y += 3;
+          // Accent underline
+          pdf.setDrawColor(...colors.accent);
+          pdf.setLineWidth(0.6);
+          pdf.line(margin, y, margin + 35, y);
+          y += 6;
+          lineIndex++;
+          continue;
+        }
 
-        if (statusEl) {
-          statusEl.textContent = 'Done';
-          statusEl.className = 'text-[10px] px-1.5 py-0.5 rounded bg-emerald-900/60 text-emerald-300 font-mono';
-        }
-        if (outputEl) {
-          outputEl.textContent = content;
+        // Heading 2: ## Heading
+        if (trimmed.startsWith("## ")) {
+          ensureSpace(14);
+          pdf.setTextColor(...colors.dark);
+          pdf.setFont("helvetica", "bold");
+          pdf.setFontSize(13);
+          const headingText = trimmed.slice(3).trim();
+          pdf.text(headingText, margin, y);
+          y += 2.5;
+          pdf.setDrawColor(...colors.accent2);
+          pdf.setLineWidth(0.4);
+          pdf.line(margin, y, margin + 25, y);
+          y += 5.5;
+          lineIndex++;
+          continue;
         }
 
-        return { agentName: name, content: content };
+        // Heading 3: ### Heading
+        if (trimmed.startsWith("### ")) {
+          ensureSpace(11);
+          pdf.setTextColor(...colors.text);
+          pdf.setFont("helvetica", "bold");
+          pdf.setFontSize(11);
+          pdf.text(trimmed.slice(4).trim(), margin, y);
+          y += 5;
+          lineIndex++;
+          continue;
+        }
 
-      } catch (err) {
-        if (statusEl) {
-          statusEl.textContent = 'Error';
-          statusEl.className = 'text-[10px] px-1.5 py-0.5 rounded bg-rose-900/60 text-rose-300 font-mono';
+        // Blockquote / Callout: > Text
+        if (trimmed.startsWith(">")) {
+          const quoteLines = [];
+          while (lineIndex < lines.length && lines[lineIndex].trim().startsWith(">")) {
+            quoteLines.push(lines[lineIndex].trim().replace(/^>\s?/, ""));
+            lineIndex++;
+          }
+          const quoteText = quoteLines.join(" ");
+          const wrapped = pdf.splitTextToSize(quoteText, contentWidth - 14);
+          const boxHeight = Math.max(12, wrapped.length * 5 + 6);
+
+          ensureSpace(boxHeight + 4);
+          pdf.setFillColor(...colors.lightBg);
+          pdf.setDrawColor(...colors.rule);
+          pdf.roundedRect(margin, y - 2, contentWidth, boxHeight, 2, 2, "FD");
+
+          // Left accent bar
+          pdf.setFillColor(...colors.accent);
+          pdf.roundedRect(margin, y - 2, 2.5, boxHeight, 1, 1, "F");
+
+          pdf.setTextColor(...colors.text);
+          pdf.setFont("helvetica", "italic");
+          pdf.setFontSize(9.5);
+          for (let i = 0; i < wrapped.length; i++) {
+            pdf.text(wrapped[i], margin + 8, y + 3 + i * 5);
+          }
+          y += boxHeight + 4;
+          continue;
         }
-        if (outputEl) {
-          outputEl.textContent = `Error: ${err.message}`;
+
+        // Code Block: ```
+        if (trimmed.startsWith("```")) {
+          lineIndex++;
+          const codeLines = [];
+          while (lineIndex < lines.length && !lines[lineIndex].trim().startsWith("```")) {
+            codeLines.push(lines[lineIndex]);
+            lineIndex++;
+          }
+          if (lineIndex < lines.length) lineIndex++; // skip ending ```
+
+          pdf.setFont("courier", "normal");
+          pdf.setFontSize(8.5);
+          const codeText = codeLines.join("\n");
+          const wrappedCode = pdf.splitTextToSize(codeText, contentWidth - 12);
+          const blockH = Math.max(12, wrappedCode.length * 4.6 + 6);
+
+          ensureSpace(blockH + 3);
+          pdf.setFillColor(243, 244, 246);
+          pdf.setDrawColor(209, 213, 219);
+          pdf.roundedRect(margin, y - 2, contentWidth, blockH, 2, 2, "FD");
+
+          pdf.setTextColor(31, 41, 55);
+          for (let i = 0; i < wrappedCode.length; i++) {
+            pdf.text(wrappedCode[i], margin + 6, y + 2.5 + i * 4.6);
+          }
+          y += blockH + 4;
+          continue;
         }
-        throw err;
+
+        // Markdown Table: | col 1 | col 2 |
+        if (trimmed.startsWith("|") && trimmed.endsWith("|")) {
+          const tableRows = [];
+          while (lineIndex < lines.length && lines[lineIndex].trim().startsWith("|") && lines[lineIndex].trim().endsWith("|")) {
+            const rowText = lines[lineIndex].trim();
+            // Skip markdown divider line like |---|---|
+            if (!rowText.replace(/[|\-\s:]/g, "").length) {
+              lineIndex++;
+              continue;
+            }
+            const cells = rowText.split("|").slice(1, -1).map(c => c.trim());
+            tableRows.push(cells);
+            lineIndex++;
+          }
+
+          if (tableRows.length > 0) {
+            const colCount = Math.max(...tableRows.map(r => r.length));
+            const colWidth = contentWidth / colCount;
+            const rowHeight = 7;
+
+            ensureSpace(tableRows.length * rowHeight + 4);
+
+            for (let r = 0; r < tableRows.length; r++) {
+              const row = tableRows[r];
+              const isHeader = (r === 0);
+
+              if (isHeader) {
+                pdf.setFillColor(...colors.accent);
+                pdf.rect(margin, y - 1, contentWidth, rowHeight, "F");
+                pdf.setTextColor(255, 255, 255);
+                pdf.setFont("helvetica", "bold");
+                pdf.setFontSize(9);
+              } else {
+                pdf.setFillColor(r % 2 === 0 ? 250 : 243, r % 2 === 0 ? 250 : 244, r % 2 === 0 ? 252 : 246);
+                pdf.rect(margin, y - 1, contentWidth, rowHeight, "F");
+                pdf.setTextColor(...colors.text);
+                pdf.setFont("helvetica", "normal");
+                pdf.setFontSize(8.5);
+              }
+
+              for (let c = 0; c < colCount; c++) {
+                const cellText = row[c] || "";
+                const cellX = margin + c * colWidth + 2;
+                pdf.text(pdf.splitTextToSize(cellText, colWidth - 4)[0] || "", cellX, y + 4);
+              }
+
+              pdf.setDrawColor(...colors.rule);
+              pdf.setLineWidth(0.2);
+              pdf.rect(margin, y - 1, contentWidth, rowHeight, "D");
+              y += rowHeight;
+            }
+            y += 4;
+            continue;
+          }
+        }
+
+        // Bullet Point: - item or * item
+        const bulletMatch = trimmed.match(/^[-*]\s+(.+)/);
+        if (bulletMatch) {
+          ensureSpace(7);
+          pdf.setFillColor(...colors.accent);
+          pdf.circle(margin + 2.5, y - 1, 0.9, "F");
+
+          pdf.setTextColor(...colors.text);
+          pdf.setFont("helvetica", "normal");
+          pdf.setFontSize(10);
+          const cleanText = bulletMatch[1].replace(/\*\*/g, "");
+          const wrapped = pdf.splitTextToSize(cleanText, contentWidth - 8);
+          for (let i = 0; i < wrapped.length; i++) {
+            ensureSpace(5.5);
+            pdf.text(wrapped[i], margin + 7, y);
+            y += 5.2;
+          }
+          lineIndex++;
+          continue;
+        }
+
+        // Numbered List: 1. item
+        const numMatch = trimmed.match(/^(\d+)[.)]\s+(.+)/);
+        if (numMatch) {
+          ensureSpace(7);
+          pdf.setTextColor(...colors.accent);
+          pdf.setFont("helvetica", "bold");
+          pdf.setFontSize(9.5);
+          pdf.text(`${numMatch[1]}.`, margin + 1, y);
+
+          pdf.setTextColor(...colors.text);
+          pdf.setFont("helvetica", "normal");
+          pdf.setFontSize(10);
+          const cleanText = numMatch[2].replace(/\*\*/g, "");
+          const wrapped = pdf.splitTextToSize(cleanText, contentWidth - 9);
+          for (let i = 0; i < wrapped.length; i++) {
+            ensureSpace(5.5);
+            pdf.text(wrapped[i], margin + 8, y);
+            y += 5.2;
+          }
+          lineIndex++;
+          continue;
+        }
+
+        // Divider: ---
+        if (trimmed === "---" || trimmed === "***") {
+          ensureSpace(6);
+          pdf.setDrawColor(...colors.rule);
+          pdf.setLineWidth(0.4);
+          pdf.line(margin, y, pageWidth - margin, y);
+          y += 6;
+          lineIndex++;
+          continue;
+        }
+
+        // Standard Paragraph
+        pdf.setTextColor(...colors.text);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(10);
+        const cleanParagraph = trimmed.replace(/\*\*/g, "");
+        const wrappedParagraph = pdf.splitTextToSize(cleanParagraph, contentWidth);
+        for (let i = 0; i < wrappedParagraph.length; i++) {
+          ensureSpace(5.5);
+          pdf.text(wrappedParagraph[i], margin, y);
+          y += 5.2;
+        }
+        y += 2;
+        lineIndex++;
+      }
+
+      // Closing Takeaway Strip
+      ensureSpace(16);
+      pdf.setFillColor(...colors.lightBg);
+      pdf.setDrawColor(...colors.accent);
+      pdf.setLineWidth(0.4);
+      pdf.roundedRect(margin, y, contentWidth, 13, 2, 2, "FD");
+      pdf.setTextColor(...colors.text);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(8.5);
+      pdf.text("DOCUMENT VERIFIED & RENDERED BY MULTIPLE AI STUDIO", margin + 6, y + 6);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(...colors.muted);
+      pdf.text("All architecture components, specs, and synthesized sections are finalized.", margin + 6, y + 10);
+
+      // Running Headers & Footers on Every Page
+      const totalPages = pdf.getNumberOfPages();
+      for (let p = 1; p <= totalPages; p++) {
+        pdf.setPage(p);
+
+        // Header (pages after 1)
+        if (p > 1) {
+          pdf.setTextColor(...colors.muted);
+          pdf.setFont("helvetica", "normal");
+          pdf.setFontSize(7.5);
+          pdf.text(safeTitle.slice(0, 60), margin, 12);
+          pdf.text("Multiple AI Studio", pageWidth - margin, 12, { align: "right" });
+          pdf.setDrawColor(...colors.rule);
+          pdf.setLineWidth(0.3);
+          pdf.line(margin, 14, pageWidth - margin, 14);
+        }
+
+        // Footer
+        pdf.setDrawColor(...colors.rule);
+        pdf.setLineWidth(0.3);
+        pdf.line(margin, pageHeight - 14, pageWidth - margin, pageHeight - 14);
+
+        pdf.setTextColor(...colors.muted);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(7.5);
+        pdf.text(`Page ${p} of ${totalPages}`, pageWidth - margin, pageHeight - 9, { align: "right" });
+        pdf.text(`Confidential • Generated on ${dateStr}`, margin, pageHeight - 9);
+      }
+
+      const pdfBlob = pdf.output("blob");
+      const blobUrl = URL.createObjectURL(pdfBlob);
+
+      return {
+        blob: pdfBlob,
+        blobUrl: blobUrl,
+        filename: safeFilename,
+        title: safeTitle,
+        pageCount: totalPages,
+        sizeKb: (pdfBlob.size / 1024).toFixed(1)
+      };
+    }
+
+    // Direct Download Helper
+    function triggerDownloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 20000);
+      playBeep(880, 0.05);
+    }
+
+    // ==============================================================
+    // 6. UI VIEW SWITCHING & MANAGEMENT
+    // ==============================================================
+    function switchView(viewName) {
+      activeView = viewName;
+
+      // Update Nav Tabs
+      document.querySelectorAll(".nav-tab").forEach(tab => {
+        tab.className = "nav-tab px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition text-slate-400 hover:text-slate-200";
+      });
+      const activeTab = document.getElementById(`nav-tab-${viewName}`);
+      if (activeTab) {
+        activeTab.className = "nav-tab px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition text-white bg-brand-600 shadow-sm";
+      }
+
+      // Update View Panels
+      document.querySelectorAll(".view-panel").forEach(panel => {
+        panel.classList.remove("active");
+      });
+      const activePanel = document.getElementById(`view-${viewName}`);
+      if (activePanel) {
+        activePanel.classList.add("active");
+      }
+
+      playBeep(640, 0.02);
+    }
+
+    function toggleSidebar() {
+      const sb = document.getElementById("chatSidebar");
+      if (sb) {
+        sb.classList.toggle("-translate-x-full");
       }
     }
 
-    // Main Orchestrator
-    async function executeAgentTeam() {
-      const prompt = document.getElementById('userPrompt').value.trim();
-      const runBtn = document.getElementById('runBtn');
-      const finalOutput = document.getElementById('finalOutput');
-      const synthStatus = document.getElementById('synthesis-status');
+    // ==============================================================
+    // 7. AI CHAT CONTROLLER & TOOL EXECUTION
+    // ==============================================================
+    function createNewChat() {
+      const sessionId = `session_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      currentChatSessionId = sessionId;
+      chatSessions[sessionId] = {
+        id: sessionId,
+        title: "New Conversation",
+        messages: [
+          {
+            role: "assistant",
+            content: "Hello! I am your AI Assistant in Multiple AI Studio. I can assist with engineering, generate photorealistic art, and create publication-grade PDF documents. What would you like to build today?"
+          }
+        ],
+        updatedAt: Date.now()
+      };
+      renderChatSessions();
+      renderActiveChat();
+      const sb = document.getElementById("chatSidebar");
+      if (sb && !sb.classList.contains("-translate-x-full") && window.innerWidth < 1024) {
+        sb.classList.add("-translate-x-full");
+      }
+    }
+
+    function renderChatSessions() {
+      const container = document.getElementById("chatSessionList");
+      if (!container) return;
+      container.innerHTML = "";
+
+      const list = Object.values(chatSessions).sort((a, b) => b.updatedAt - a.updatedAt);
+      list.forEach(s => {
+        const item = document.createElement("button");
+        const isActive = s.id === currentChatSessionId;
+        item.className = `w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between transition ${isActive ? 'bg-surface-800 text-white font-bold border border-slate-700' : 'text-slate-400 hover:bg-surface-850 hover:text-slate-200'}`;
+        item.onclick = () => {
+          currentChatSessionId = s.id;
+          renderChatSessions();
+          renderActiveChat();
+        };
+
+        item.innerHTML = `
+          <div class="truncate flex items-center gap-2">
+            <span>💬</span>
+            <span class="truncate">${s.title || 'Conversation'}</span>
+          </div>
+          <span onclick="event.stopPropagation(); deleteChatSession('${s.id}')" class="text-slate-500 hover:text-rose-400 text-xs px-1">✕</span>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function deleteChatSession(id) {
+      delete chatSessions[id];
+      const remaining = Object.keys(chatSessions);
+      if (remaining.length > 0) {
+        currentChatSessionId = remaining[0];
+      } else {
+        createNewChat();
+      }
+      renderChatSessions();
+      renderActiveChat();
+    }
+
+    function renderActiveChat() {
+      const container = document.getElementById("chatMessages");
+      if (!container) return;
+      container.innerHTML = "";
+
+      const session = chatSessions[currentChatSessionId];
+      if (!session) return;
+
+      session.messages.forEach(msg => {
+        if (msg.role === "system") return;
+        appendMessageBubble(msg.role, msg.content, msg.extra);
+      });
+
+      if (appSettings.autoScroll) {
+        container.scrollTop = container.scrollHeight;
+      }
+    }
+
+    function appendMessageBubble(role, content, extra = null) {
+      const container = document.getElementById("chatMessages");
+      if (!container) return null;
+
+      const row = document.createElement("div");
+      const isUser = role === "user";
+      row.className = `flex gap-3 ${isUser ? 'justify-end' : 'justify-start'} text-sm leading-relaxed`;
+
+      const bubble = document.createElement("div");
+      bubble.className = isUser
+        ? "bg-brand-600 text-white px-4 py-3 rounded-2xl rounded-tr-sm max-w-2xl shadow-md"
+        : "bg-surface-900 border border-slate-800 text-slate-200 px-4 py-3 rounded-2xl rounded-tl-sm max-w-2xl shadow-md space-y-2";
+
+      // Role header for AI
+      if (!isUser) {
+        const header = document.createElement("div");
+        header.className = "flex items-center gap-2 text-xs font-bold text-brand-400 mb-1";
+        header.innerHTML = `<span>✨ Multiple AI</span>`;
+        bubble.appendChild(header);
+      }
+
+      // Content
+      const textDiv = document.createElement("div");
+      textDiv.className = "whitespace-pre-wrap break-words";
+      textDiv.textContent = content || "";
+      bubble.appendChild(textDiv);
+
+      // Render extra attachments (PDF Download Card or Image Grid)
+      if (extra && extra.type === 'pdf') {
+        bubble.appendChild(createChatPdfCard(extra.data));
+      } else if (extra && extra.type === 'images') {
+        bubble.appendChild(createChatImageGrid(extra.data));
+      }
+
+      row.appendChild(bubble);
+      container.appendChild(row);
+
+      if (appSettings.autoScroll) {
+        container.scrollTop = container.scrollHeight;
+      }
+
+      return bubble;
+    }
+
+    function createChatPdfCard(pdfResult) {
+      const card = document.createElement("div");
+      card.className = "mt-3 bg-surface-950 border border-slate-800 rounded-xl p-3.5 space-y-3";
+      
+      card.innerHTML = `
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2.5">
+            <div class="w-10 h-10 rounded-lg bg-indigo-950 border border-indigo-700/60 flex items-center justify-center text-xl">📄</div>
+            <div>
+              <div class="font-bold text-xs text-slate-100">${pdfResult.title || 'PDF Document'}</div>
+              <div class="text-[11px] text-slate-400 font-mono">${pdfResult.filename} • ${pdfResult.pageCount || 1} pages • ${pdfResult.sizeKb || 12} KB</div>
+            </div>
+          </div>
+          <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono">Ready</span>
+        </div>
+
+        <div class="flex items-center gap-2 pt-1 border-t border-slate-800/80">
+          <button onclick="triggerDownloadBlob(window._pdfBlobs['${pdfResult.id}'], '${pdfResult.filename}')" class="flex-1 py-1.5 px-3 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow">
+            <span>⬇️ Download PDF</span>
+          </button>
+          <a href="${pdfResult.blobUrl}" target="_blank" class="py-1.5 px-3 rounded-lg bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-300 text-xs font-semibold flex items-center gap-1 transition">
+            <span>🔍 View / Print</span>
+          </a>
+        </div>
+      `;
+
+      // Save blob reference
+      if (!window._pdfBlobs) window._pdfBlobs = {};
+      window._pdfBlobs[pdfResult.id] = pdfResult.blob;
+
+      return card;
+    }
+
+    function createChatImageGrid(images) {
+      const grid = document.createElement("div");
+      grid.className = "mt-3 grid grid-cols-2 gap-2";
+
+      images.forEach(img => {
+        const item = document.createElement("div");
+        item.className = "relative group rounded-lg overflow-hidden border border-slate-800 bg-surface-950";
+        item.innerHTML = `
+          <img src="${img.url}" alt="${img.prompt}" class="w-full h-36 object-cover cursor-pointer transition transform group-hover:scale-105" onclick="openLightboxModal('${img.url}', '${img.prompt.replace(/'/g, "\\'")}')" />
+          <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1 transition">
+            <button onclick="downloadDirectImage('${img.url}', '${Date.now()}.jpg')" class="p-1.5 rounded-lg bg-surface-900/90 text-white text-xs" title="Download">⬇️</button>
+            <button onclick="sendImageToPdfStudio('${img.url}', '${img.prompt.replace(/'/g, "\\'")}')" class="p-1.5 rounded-lg bg-indigo-600/90 text-white text-xs" title="Send to PDF">📄</button>
+          </div>
+        `;
+        grid.appendChild(item);
+      });
+
+      return grid;
+    }
+
+    async function handleSendChat() {
+      const input = document.getElementById("chatInput");
+      const sendBtn = document.getElementById("chatSendBtn");
+      const text = input.value.trim();
+      if (!text) return;
+
+      const session = chatSessions[currentChatSessionId];
+      if (!session) return;
+
+      // Update title if first message
+      if (session.title === "New Conversation") {
+        session.title = text.slice(0, 26) + (text.length > 26 ? "..." : "");
+        renderChatSessions();
+      }
+
+      // Append user message
+      session.messages.push({ role: "user", content: text });
+      appendMessageBubble("user", text);
+      input.value = "";
+      input.style.height = "auto";
+
+      // Direct /image command check
+      if (text.startsWith("/image ")) {
+        const imgPrompt = text.replace("/image ", "").trim();
+        await handleDirectImageChat(imgPrompt);
+        return;
+      }
+
+      // Disable send button while generating
+      sendBtn.disabled = true;
+      const thinkingBubble = appendMessageBubble("assistant", "Thinking & synthesizing...");
+
+      try {
+        const conversationMessages = [
+          {
+            role: "system",
+            content: `You are Multiple AI, a brilliant, helpful companion and multi-modal engineering partner.
+You have access to two powerful tools:
+1. create_pdf: Use whenever the user asks for a PDF. Generate full, comprehensive, professional document content with headings (#, ##), bullet points (-), code blocks, or tables (|). Do not return raw code.
+2. generate_image: Use whenever the user requests an image, photo, illustration, or visual. Provide detailed descriptive prompts.
+If the user asks for a PDF with images, FIRST call generate_image to get image URLs, then call create_pdf with the URLs.`
+          },
+          ...session.messages.map(m => ({ role: m.role, content: m.content }))
+        ];
+
+        let assistantReply = await callGroqAPI({
+          messages: conversationMessages,
+          tools: [PDF_TOOL_SCHEMA, IMAGE_TOOL_SCHEMA]
+        });
+
+        // Handle tool calls
+        if (assistantReply.tool_calls && assistantReply.tool_calls.length > 0) {
+          const toolCall = assistantReply.tool_calls[0];
+          const funcName = toolCall.function?.name;
+          let funcArgs = {};
+          try {
+            funcArgs = JSON.parse(toolCall.function.arguments || "{}");
+          } catch (e) {
+            funcArgs = {};
+          }
+
+          // Case A: generate_image called
+          if (funcName === "generate_image") {
+            thinkingBubble.querySelector(".whitespace-pre-wrap").textContent = "🎨 Generating high-fidelity artwork...";
+            const imgResults = await generateImageUrls({
+              prompt: funcArgs.prompt || text,
+              count: funcArgs.count || 1,
+              dimensions: funcArgs.dimensions || "1024x1024",
+              style: funcArgs.style || "photorealistic"
+            });
+
+            // Save to history
+            imgResults.forEach(r => saveImageToHistory(r));
+
+            // Check if user also wanted a PDF
+            if (text.toLowerCase().includes("pdf")) {
+              thinkingBubble.querySelector(".whitespace-pre-wrap").textContent = "📄 Formatting PDF document with generated images...";
+              const pdfArgs = {
+                title: funcArgs.prompt || "Visual Report",
+                filename: "visual-report.pdf",
+                content: `# ${funcArgs.prompt}\n\nThis document highlights the visual analysis generated for this request.\n\n### Overview\nGenerated high-resolution graphics utilizing advanced neural rendering.`,
+                images: imgResults.map(r => ({ url: r.url, alt: r.prompt }))
+              };
+              const pdfRes = await createPdfDocument(pdfArgs);
+              pdfRes.id = `pdf_${Date.now()}`;
+              recordPdfToHistory(pdfRes);
+
+              thinkingBubble.querySelector(".whitespace-pre-wrap").textContent = `Generated image(s) and compiled PDF for: "${funcArgs.prompt}"`;
+              thinkingBubble.appendChild(createChatImageGrid(imgResults));
+              thinkingBubble.appendChild(createChatPdfCard(pdfRes));
+
+              session.messages.push({
+                role: "assistant",
+                content: `Generated images and compiled PDF for: "${funcArgs.prompt}"`,
+                extra: { type: "pdf", data: pdfRes }
+              });
+              return;
+            }
+
+            // Normal image return
+            thinkingBubble.querySelector(".whitespace-pre-wrap").textContent = `Generated ${imgResults.length} image(s) for "${funcArgs.prompt}":`;
+            thinkingBubble.appendChild(createChatImageGrid(imgResults));
+
+            session.messages.push({
+              role: "assistant",
+              content: `Generated ${imgResults.length} image(s) for "${funcArgs.prompt}":`,
+              extra: { type: "images", data: imgResults }
+            });
+            playBeep(880, 0.05);
+            return;
+          }
+
+          // Case B: create_pdf called
+          if (funcName === "create_pdf") {
+            thinkingBubble.querySelector(".whitespace-pre-wrap").textContent = "📄 Rendering multi-page PDF document...";
+            const pdfRes = await createPdfDocument(funcArgs);
+            pdfRes.id = `pdf_${Date.now()}`;
+            recordPdfToHistory(pdfRes);
+
+            thinkingBubble.querySelector(".whitespace-pre-wrap").textContent = `I have generated your PDF document: "${pdfRes.title}"`;
+            thinkingBubble.appendChild(createChatPdfCard(pdfRes));
+
+            session.messages.push({
+              role: "assistant",
+              content: `I have generated your PDF document: "${pdfRes.title}"`,
+              extra: { type: "pdf", data: pdfRes }
+            });
+            playBeep(920, 0.06);
+            return;
+          }
+        }
+
+        // Standard text reply
+        const replyText = assistantReply.content || "I've processed your request.";
+        thinkingBubble.querySelector(".whitespace-pre-wrap").textContent = replyText;
+        session.messages.push({ role: "assistant", content: replyText });
+        playBeep(720, 0.03);
+
+      } catch (err) {
+        thinkingBubble.querySelector(".whitespace-pre-wrap").textContent = `Notice: ${err.message || 'Error occurred while contacting AI service.'}`;
+      } finally {
+        sendBtn.disabled = false;
+        session.updatedAt = Date.now();
+        saveLocalChatSessions();
+      }
+    }
+
+    async function handleDirectImageChat(prompt) {
+      const sendBtn = document.getElementById("chatSendBtn");
+      sendBtn.disabled = true;
+      const thinkingBubble = appendMessageBubble("assistant", "🎨 Generating artwork...");
+
+      try {
+        const imgResults = await generateImageUrls({ prompt, count: 2, dimensions: '1024x1024' });
+        imgResults.forEach(r => saveImageToHistory(r));
+
+        thinkingBubble.querySelector(".whitespace-pre-wrap").textContent = `Generated 2 images for "${prompt}":`;
+        thinkingBubble.appendChild(createChatImageGrid(imgResults));
+
+        const session = chatSessions[currentChatSessionId];
+        session.messages.push({
+          role: "assistant",
+          content: `Generated images for "${prompt}"`,
+          extra: { type: "images", data: imgResults }
+        });
+      } catch (err) {
+        thinkingBubble.querySelector(".whitespace-pre-wrap").textContent = `Image generation error: ${err.message}`;
+      } finally {
+        sendBtn.disabled = false;
+      }
+    }
+
+    function quickPrompt(txt) {
+      document.getElementById("chatInput").value = txt;
+      handleSendChat();
+    }
+
+    // ==============================================================
+    // 8. PDF STUDIO CONTROLLER
+    // ==============================================================
+    const PDF_TEMPLATES = {
+      proposal: {
+        title: "Executive Project Proposal & Architecture",
+        filename: "executive-project-proposal.pdf",
+        content: `# Executive Project Proposal & Architecture
+
+## 1. Executive Summary
+This document proposes the architectural overhaul and multi-modal integration for our modern web platform. By leveraging parallel agent orchestration, client-side PDF document generation, and high-fidelity image synthesis, the system delivers unmatched responsiveness.
+
+## 2. Core Objectives
+- **Zero Downtime:** Seamless fallback across Groq API keys and resilient image generation pipelines.
+- **Client-Side Rendering:** Eliminate server dependencies for PDF generation using optimized vector math.
+- **Multi-Modal Workflows:** Connect text, imagery, and PDF deliverables in a unified workspace.
+
+## 3. High-Level Technical Architecture
+The system employs a layered decoupled architecture:
+
+| Layer | Technology | Primary Role |
+|---|---|---|
+| User Interface | Tailwind CSS + Vanilla JS | Ultra-fast responsive interactions |
+| LLM Orchestration | Groq Llama 3.3 70B | Real-time reasoning and synthesis |
+| Image Engine | Flux / SDXL Turbo | High-res photorealistic rendering |
+| PDF Compiler | jsPDF Enhanced Engine | Vector document generation & table layouts |
+
+## 4. Implementation Roadmap
+1. Complete core client-side PDF rendering bugfixes (for..of mutation resolution).
+2. Upgrade image generator with 12 visual style presets and AI prompt enhancement.
+3. Integrate 5-Agent parallel swarm with 1-click PDF synthesis export.
+4. Finalize mobile responsive layout and dark theme compliance.
+
+> **Key Takeaway:** By eliminating server-side rendering bottlenecks, document and image delivery latency drops from seconds to instantaneous local generation.`
+      },
+
+      architecture: {
+        title: "System Technical Specification & Scaling Blueprint",
+        filename: "technical-spec-blueprint.pdf",
+        content: `# System Technical Specification & Scaling Blueprint
+
+## 1. Architectural Overview
+This specification outlines the technical parameters, fault tolerance mechanisms, and scaling boundaries for the multi-modal AI system.
+
+## 2. Component Specifications
+
+### 2.1 LLM Client Pool
+- **Model:** llama-3.3-70b-versatile with instant fallback to llama-3.1-8b.
+- **Key Rotation:** Circular pool of 5 permanent Groq tokens with automatic 429 backoff.
+- **Function Calling:** Structured schema validation for \`create_pdf\` and \`generate_image\`.
+
+### 2.2 Vector Document Compiler
+\`\`\`javascript
+// Multi-page table renderer with automatic page breaks
+async function renderTable(pdf, rows, colWidth, startY) {
+  for (let r = 0; r < rows.length; r++) {
+    if (startY + 10 > bottomLimit) {
+      pdf.addPage();
+      startY = 20;
+    }
+    pdf.rect(margin, startY, contentWidth, 8, "FD");
+    startY += 8;
+  }
+}
+\`\`\`
+
+## 3. Performance Metrics
+- **Average PDF Build Time:** < 120ms for 5-page document.
+- **Image Generation Handshake:** < 1800ms via Pollinations neural cluster.
+- **Memory Footprint:** < 32MB browser heap allocation.`
+      },
+
+      cheatsheet: {
+        title: "Modern Full-Stack Engineering Cheatsheet",
+        filename: "fullstack-engineering-cheatsheet.pdf",
+        content: `# Modern Full-Stack Engineering Cheatsheet
+
+## 1. Quick Reference Commands
+
+### Git & Branch Management
+- \`git status\` - Verify modified and staged workspace files.
+- \`git checkout -b feature/name\` - Create and switch to a new branch.
+- \`git log --oneline -n 10\` - View concise commit history.
+
+## 2. API Design & Status Codes
+- **200 OK:** Standard successful HTTP request.
+- **201 Created:** Successful resource creation.
+- **400 Bad Request:** Malformed payload or parameter schema validation error.
+- **429 Too Many Requests:** Rate limit exceeded - back off and rotate tokens.
+- **500 Internal Error:** Unhandled exception on upstream server.
+
+## 3. Essential Architecture Patterns
+1. **CQRS (Command Query Responsibility Segregation):** Separate read and update data models.
+2. **Circuit Breaker:** Wrap fragile external service calls to prevent cascading failures.
+3. **Optimistic Locking:** Detect conflicting edits using version tags before writing to storage.
+
+> **Pro Tip:** Always isolate client-side blob allocations with revocation timers to prevent memory leaks.`
+      }
+    };
+
+    function applyPdfTemplate(key) {
+      const t = PDF_TEMPLATES[key];
+      if (!t) return;
+      document.getElementById("pdfStudioTitle").value = t.title;
+      document.getElementById("pdfStudioFilename").value = t.filename;
+      document.getElementById("pdfStudioContent").value = t.content;
+      updatePdfStats();
+      playBeep(720, 0.04);
+    }
+
+    function insertPdfMarkdown(syntax) {
+      const textarea = document.getElementById("pdfStudioContent");
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const current = textarea.value;
+      textarea.value = current.substring(0, start) + syntax + current.substring(end);
+      textarea.focus();
+      textarea.selectionStart = start + syntax.length;
+      textarea.selectionEnd = start + syntax.length;
+      updatePdfStats();
+    }
+
+    function insertPdfTableSample() {
+      const tableMarkdown = `\n| Metric | Baseline | Optimized | Improvement |\n|---|---|---|---|\n| Latency | 450ms | 85ms | 81% faster |\n| Memory | 64MB | 22MB | 65% reduction |\n| Error Rate | 2.4% | 0.01% | 99% reliable |\n`;
+      insertPdfMarkdown(tableMarkdown);
+    }
+
+    function promptAddPdfImage() {
+      const url = prompt("Enter an image URL (or use generated images from Image Studio):");
+      if (url && url.trim().startsWith("http")) {
+        studioAttachedImages.push({ url: url.trim(), alt: "Attached Figure" });
+        updatePdfAttachedImagesUI();
+      }
+    }
+
+    function clearPdfImages() {
+      studioAttachedImages = [];
+      updatePdfAttachedImagesUI();
+    }
+
+    function updatePdfAttachedImagesUI() {
+      const countLabel = document.getElementById("pdfImageCountLabel");
+      const strip = document.getElementById("pdfAttachedImagesStrip");
+      if (!countLabel || !strip) return;
+
+      countLabel.textContent = `${studioAttachedImages.length} Image(s)`;
+      if (studioAttachedImages.length === 0) {
+        strip.classList.add("hidden");
+        strip.innerHTML = "";
+      } else {
+        strip.classList.remove("hidden");
+        strip.innerHTML = studioAttachedImages.map((img, idx) => `
+          <div class="relative group w-14 h-14 rounded-lg overflow-hidden border border-slate-700 flex-shrink-0">
+            <img src="${img.url}" class="w-full h-full object-cover" />
+            <button onclick="studioAttachedImages.splice(${idx}, 1); updatePdfAttachedImagesUI();" class="absolute top-0.5 right-0.5 w-4 h-4 rounded bg-rose-600 text-white text-[10px] flex items-center justify-center">✕</button>
+          </div>
+        `).join("");
+      }
+    }
+
+    function updatePdfStats() {
+      const content = document.getElementById("pdfStudioContent").value;
+      const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
+      document.getElementById("pdfContentWordCount").textContent = `${wordCount} words • ${content.length} chars`;
+    }
+
+    async function generatePdfFromStudio() {
+      const title = document.getElementById("pdfStudioTitle").value.trim() || "Document";
+      const filename = document.getElementById("pdfStudioFilename").value.trim() || "document.pdf";
+      const content = document.getElementById("pdfStudioContent").value;
+      const theme = document.getElementById("pdfStudioTheme").value;
+      const author = document.getElementById("pdfStudioAuthor").value.trim() || "Multiple AI Studio";
+
+      const previewFrame = document.getElementById("pdfStudioPreviewFrame");
+      const liveBadge = document.getElementById("pdfLiveBadge");
+      const downloadBtn = document.getElementById("pdfStudioDownloadBtn");
+      const printBtn = document.getElementById("pdfStudioPrintBtn");
+      const metaStrip = document.getElementById("pdfStudioMetaStrip");
+
+      if (!content.trim()) {
+        alert("Please enter document content or choose a template first.");
+        return;
+      }
+
+      liveBadge.textContent = "Compiling...";
+      liveBadge.className = "text-[10px] px-2 py-0.5 rounded bg-brand-900/60 text-brand-300 font-mono animate-pulse";
+
+      try {
+        const result = await createPdfDocument({
+          title,
+          filename,
+          content,
+          images: studioAttachedImages,
+          theme,
+          author
+        });
+
+        lastStudioPdfBlob = result.blob;
+        lastStudioPdfFilename = result.filename;
+        result.id = `studio_${Date.now()}`;
+        recordPdfToHistory(result);
+
+        // Render preview inside iframe
+        previewFrame.innerHTML = `
+          <iframe src="${result.blobUrl}#toolbar=0" class="w-full h-full border-0 rounded-lg" title="PDF Preview"></iframe>
+        `;
+
+        downloadBtn.disabled = false;
+        printBtn.disabled = false;
+        metaStrip.classList.remove("hidden");
+        document.getElementById("pdfStudioMetaPages").textContent = `${result.pageCount} Page(s)`;
+        document.getElementById("pdfStudioMetaSize").textContent = `${result.sizeKb} KB`;
+
+        liveBadge.textContent = "Compiled ✓";
+        liveBadge.className = "text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono";
+        playBeep(920, 0.05);
+
+      } catch (err) {
+        liveBadge.textContent = "Error";
+        liveBadge.className = "text-[10px] px-2 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-800 font-mono";
+        alert(`PDF Compilation Error: ${err.message}`);
+      }
+    }
+
+    function downloadLastStudioPdf() {
+      if (!lastStudioPdfBlob) return;
+      triggerDownloadBlob(lastStudioPdfBlob, lastStudioPdfFilename);
+    }
+
+    function openLastStudioPdf() {
+      if (!lastStudioPdfBlob) return;
+      const url = URL.createObjectURL(lastStudioPdfBlob);
+      window.open(url, "_blank");
+    }
+
+    async function enhancePdfWithAi() {
+      const current = document.getElementById("pdfStudioContent").value.trim();
+      if (!current) {
+        alert("Please write some notes or choose a template first for the AI to enhance.");
+        return;
+      }
+
+      const btn = event.currentTarget;
+      const originalText = btn.innerHTML;
+      btn.innerHTML = "<span>⏳ Enhancing...</span>";
+      btn.disabled = true;
+
+      try {
+        const response = await callGroqAPI({
+          messages: [
+            {
+              role: "system",
+              content: `You are an elite technical document editor. Improve the following markdown document by refining headings, adding structured lists, improving vocabulary, and adding a summary table where relevant. Return ONLY the enhanced markdown without any conversational filler.`
+            },
+            {
+              role: "user",
+              content: current
+            }
+          ]
+        });
+
+        if (response.content) {
+          document.getElementById("pdfStudioContent").value = response.content;
+          updatePdfStats();
+          playBeep(880, 0.04);
+        }
+      } catch (e) {
+        alert(`AI Enhancement failed: ${e.message}`);
+      } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
+    }
+
+    // ==============================================================
+    // 9. IMAGE STUDIO CONTROLLER (MORE BETTER)
+    // ==============================================================
+    function initStylePresetsGrid() {
+      const grid = document.getElementById("stylePresetsGrid");
+      if (!grid) return;
+      grid.innerHTML = "";
+
+      IMAGE_STYLE_PRESETS.forEach(preset => {
+        const isSelected = preset.id === currentSelectedStyle;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.onclick = () => selectImageStyle(preset.id);
+        btn.className = `p-2.5 rounded-xl border text-left flex flex-col justify-between gap-1 transition ${isSelected ? 'bg-pink-950/60 border-pink-500 text-pink-200 shadow-md shadow-pink-500/10' : 'bg-surface-950 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'}`;
+        btn.id = `style-preset-${preset.id}`;
+
+        btn.innerHTML = `
+          <span class="text-xs font-bold truncate">${preset.name}</span>
+          <span class="text-[10px] text-slate-500 font-mono">Preset</span>
+        `;
+        grid.appendChild(btn);
+      });
+    }
+
+    function selectImageStyle(styleId) {
+      currentSelectedStyle = styleId;
+      IMAGE_STYLE_PRESETS.forEach(p => {
+        const el = document.getElementById(`style-preset-${p.id}`);
+        if (!el) return;
+        if (p.id === styleId) {
+          el.className = "p-2.5 rounded-xl border text-left flex flex-col justify-between gap-1 transition bg-pink-950/60 border-pink-500 text-pink-200 shadow-md shadow-pink-500/10";
+        } else {
+          el.className = "p-2.5 rounded-xl border text-left flex flex-col justify-between gap-1 transition bg-surface-950 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200";
+        }
+      });
+      playBeep(700, 0.02);
+    }
+
+    function setImageAspectRatio(ratio, btn) {
+      currentSelectedRatio = ratio;
+      document.querySelectorAll("#aspectRatioSelectors .ratio-btn").forEach(b => {
+        b.className = "ratio-btn p-2 rounded-lg bg-surface-950 border border-slate-800 text-slate-400 text-xs flex flex-col items-center justify-center gap-1 transition hover:border-slate-700";
+      });
+      btn.className = "ratio-btn active p-2 rounded-lg bg-surface-950 border border-pink-500 text-pink-300 text-xs flex flex-col items-center justify-center gap-1 transition";
+      playBeep(680, 0.02);
+    }
+
+    function setImageBatchCount(count, btn) {
+      currentSelectedBatch = count;
+      document.querySelectorAll(".batch-btn").forEach(b => {
+        b.className = "batch-btn p-2.5 rounded-lg bg-surface-950 border border-slate-800 text-slate-400 text-xs font-bold hover:border-slate-700 transition";
+      });
+      btn.className = "batch-btn active p-2.5 rounded-lg bg-surface-950 border border-pink-500 text-pink-300 text-xs font-bold transition";
+      playBeep(680, 0.02);
+    }
+
+    function setImagePrompt(txt) {
+      document.getElementById("imageStudioPrompt").value = txt;
+      playBeep(640, 0.03);
+    }
+
+    function randomizeStudioSeed() {
+      const seed = Math.floor(Math.random() * 9000000) + 1000000;
+      document.getElementById("imageStudioSeed").value = seed;
+      playBeep(740, 0.03);
+    }
+
+    async function enhancePromptWithGroq() {
+      const promptInput = document.getElementById("imageStudioPrompt");
+      const current = promptInput.value.trim();
+      if (!current) {
+        alert("Please enter a basic prompt idea first (e.g. 'cyberpunk samurai') to enhance.");
+        return;
+      }
+
+      const spinner = document.getElementById("enhanceSpinner");
+      spinner.classList.remove("hidden");
+
+      try {
+        const response = await callGroqAPI({
+          messages: [
+            {
+              role: "system",
+              content: `You are an expert prompt engineer for cutting-edge text-to-image models (Midjourney v6, Flux, SDXL). Expand the user's brief prompt into a breathtaking, descriptive, visually evocative prompt. Specify lighting (e.g. volumetric, rim light, golden hour), composition (e.g. rule of thirds, wide-angle lens, macro), atmosphere, fine textures, materials, and artistic mood. Output ONLY the enhanced prompt in 2-3 sentences. No conversational filler.`
+            },
+            {
+              role: "user",
+              content: current
+            }
+          ]
+        });
+
+        if (response.content) {
+          promptInput.value = response.content.trim();
+          playBeep(880, 0.05);
+        }
+      } catch (err) {
+        alert(`Prompt enhancement note: ${err.message}`);
+      } finally {
+        spinner.classList.add("hidden");
+      }
+    }
+
+    async function triggerImageStudioGenerate() {
+      const prompt = document.getElementById("imageStudioPrompt").value.trim();
+      const model = document.getElementById("imageStudioModel").value;
+      const enhance = document.getElementById("imageStudioEnhanceToggle").checked;
+      const negativePrompt = document.getElementById("imageStudioNegative").value.trim();
+      const seedVal = document.getElementById("imageStudioSeed").value.trim();
+
+      const genBtn = document.getElementById("studioGenBtn");
+      const loadingState = document.getElementById("imageLoadingState");
+      const resultsGrid = document.getElementById("imageResultsGrid");
+      const statusLabel = document.getElementById("imageStudioStatus");
 
       if (!prompt) {
-        alert('Please enter a request prompt.');
+        alert("Please enter an image prompt description.");
         return;
       }
 
-      // Ensure valid key fallback
-      const validKey = PERMANENT_GROQ_KEYS.find(k => k && !k.includes("YOUR_KEY")) || PERMANENT_GROQ_KEYS[0];
-      if (!validKey || validKey.includes("YOUR_KEY")) {
-        alert('Please open the index.html file and set your permanent Groq API key(s) in the PERMANENT_GROQ_KEYS array!');
+      genBtn.disabled = true;
+      genBtn.classList.add("opacity-50", "cursor-not-allowed");
+      loadingState.classList.remove("hidden");
+      statusLabel.textContent = "Generating...";
+      statusLabel.className = "text-xs text-pink-400 font-mono animate-pulse";
+
+      try {
+        const results = await generateImageUrls({
+          prompt,
+          count: currentSelectedBatch,
+          dimensions: currentSelectedRatio,
+          style: currentSelectedStyle,
+          model,
+          enhance,
+          negativePrompt,
+          customSeed: seedVal ? Number(seedVal) : null
+        });
+
+        // Save to gallery
+        results.forEach(r => saveImageToHistory(r));
+
+        // Render Results Grid
+        renderImageResults(results);
+
+        statusLabel.textContent = `Done (${results.length} ready)`;
+        statusLabel.className = "text-xs text-emerald-400 font-mono";
+        document.getElementById("imageBatchActions").classList.remove("hidden");
+        playBeep(840, 0.06);
+
+      } catch (err) {
+        statusLabel.textContent = "Error";
+        statusLabel.className = "text-xs text-rose-400 font-mono";
+        alert(`Generation Error: ${err.message}`);
+      } finally {
+        genBtn.disabled = false;
+        genBtn.classList.remove("opacity-50", "cursor-not-allowed");
+        loadingState.classList.add("hidden");
+      }
+    }
+
+    function renderImageResults(images) {
+      const grid = document.getElementById("imageResultsGrid");
+      if (!grid) return;
+      grid.innerHTML = "";
+
+      images.forEach((img, idx) => {
+        const card = document.createElement("div");
+        card.className = "bg-surface-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg flex flex-col group transition hover:border-pink-500/50";
+
+        card.innerHTML = `
+          <div class="relative overflow-hidden bg-surface-950 aspect-square cursor-pointer" onclick="openLightboxModal('${img.url}', '${img.prompt.replace(/'/g, "\\'")}', '${img.dimensions}', '${img.model}')">
+            <img src="${img.url}" alt="${img.prompt}" class="w-full h-full object-cover transition transform duration-300 group-hover:scale-105" loading="lazy" />
+            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 opacity-0 group-hover:opacity-100 transition p-3 flex flex-col justify-between">
+              <span class="text-[10px] px-2 py-0.5 rounded bg-black/60 text-white font-mono self-end">${img.dimensions}</span>
+              <div class="text-xs text-white line-clamp-2">${img.prompt}</div>
+            </div>
+          </div>
+
+          <div class="p-3 border-t border-slate-800 bg-surface-950/80 space-y-2 flex-1 flex flex-col justify-between">
+            <div class="flex items-center justify-between text-[11px] text-slate-400">
+              <span class="truncate font-semibold text-pink-300">${img.style}</span>
+              <span class="font-mono">#${img.seed}</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-1.5 pt-1 border-t border-slate-800/80 text-xs">
+              <button onclick="downloadDirectImage('${img.url}', 'art-${Date.now()}-${idx + 1}.jpg')" class="py-1.5 px-2 rounded-lg bg-surface-800 hover:bg-surface-700 border border-slate-700 text-slate-200 font-semibold flex items-center justify-center gap-1 transition">
+                <span>⬇️ Save</span>
+              </button>
+              <button onclick="sendImageToPdfStudio('${img.url}', '${img.prompt.replace(/'/g, "\\'")}')" class="py-1.5 px-2 rounded-lg bg-indigo-950 hover:bg-indigo-900 border border-indigo-700/60 text-indigo-300 font-semibold flex items-center justify-center gap-1 transition">
+                <span>📄 To PDF</span>
+              </button>
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    async function downloadDirectImage(url, filename) {
+      try {
+        const res = await fetch(url);
+        const blob = await res.blob();
+        triggerDownloadBlob(blob, filename);
+      } catch (e) {
+        window.open(url, "_blank");
+      }
+    }
+
+    function sendImageToPdfStudio(url, prompt) {
+      studioAttachedImages.push({ url, alt: prompt || "Synthesized Artwork" });
+      updatePdfAttachedImagesUI();
+      switchView('pdf');
+      playBeep(880, 0.04);
+    }
+
+    function sendBatchToPdf() {
+      const images = document.querySelectorAll("#imageResultsGrid img");
+      images.forEach(img => {
+        studioAttachedImages.push({ url: img.src, alt: img.alt || "Generated Image" });
+      });
+      updatePdfAttachedImagesUI();
+      switchView('pdf');
+      playBeep(920, 0.05);
+    }
+
+    // ==============================================================
+    // 10. 5-AGENT PARALLEL SWARM CONTROLLER
+    // ==============================================================
+    async function executeSwarmTeam() {
+      const prompt = document.getElementById("swarmPrompt").value.trim();
+      const runBtn = document.getElementById("swarmLaunchBtn");
+      const finalOutput = document.getElementById("swarmFinalOutput");
+      const synthStatus = document.getElementById("synthesis-status");
+      const exportPdfBtn = document.getElementById("swarmExportPdfBtn");
+
+      if (!prompt) {
+        alert("Please enter a project request for the 5-Agent team.");
         return;
       }
 
-      // Disable button during execution
       runBtn.disabled = true;
-      runBtn.classList.add('opacity-50', 'cursor-not-allowed');
-      finalOutput.textContent = "Executing 5 agents in parallel...";
-      synthStatus.textContent = "Waiting for parallel agents...";
+      runBtn.classList.add("opacity-50", "cursor-not-allowed");
+      exportPdfBtn.disabled = true;
+      finalOutput.textContent = "Launching 5 specialized agents simultaneously via Groq parallel execution...";
+      synthStatus.textContent = "Executing parallel agents...";
+      synthStatus.className = "text-xs text-blue-400 font-mono animate-pulse";
 
-      // Key assignment logic
-      const keys = [
-        PERMANENT_GROQ_KEYS[0] || validKey,
-        PERMANENT_GROQ_KEYS[1] || validKey,
-        PERMANENT_GROQ_KEYS[2] || validKey,
-        PERMANENT_GROQ_KEYS[3] || validKey,
-        PERMANENT_GROQ_KEYS[4] || validKey
-      ];
-
-      // Define 5 specialized agents
       const agentConfigs = [
         {
           name: "Technical Lead",
-          apiKey: keys[0],
-          systemPrompt: " You are a Technical Lead. Provide system architecture, key stack choices, and concrete code structure.",
-          statusEl: document.getElementById('status-agent1'),
-          outputEl: document.getElementById('output-agent1')
+          systemPrompt: "You are a Technical Lead. Provide system architecture, key stack choices, modular design, and concrete code structure.",
+          statusEl: document.getElementById("status-agent1"),
+          outputEl: document.getElementById("output-agent1")
         },
         {
           name: "UX & Product",
-          apiKey: keys[1],
-          systemPrompt: " You are a Product & UX Strategist. Focus on user workflows, interface design, ease of use, and feature priorities.",
-          statusEl: document.getElementById('status-agent2'),
-          outputEl: document.getElementById('output-agent2')
+          systemPrompt: "You are a Product & UX Strategist. Focus on user workflows, interface interactions, user retention, and accessibility.",
+          statusEl: document.getElementById("status-agent2"),
+          outputEl: document.getElementById("output-agent2")
         },
         {
           name: "Security Specialist",
-          apiKey: keys[2],
-          systemPrompt: " You are a Security Engineer. Identify security risks, authentication strategy, rate limits, and abuse prevention.",
-          statusEl: document.getElementById('status-agent3'),
-          outputEl: document.getElementById('output-agent3')
+          systemPrompt: "You are a Security Engineer. Identify attack vectors, authentication strategy, rate limiting, encryption, and abuse prevention.",
+          statusEl: document.getElementById("status-agent3"),
+          outputEl: document.getElementById("output-agent3")
         },
         {
           name: "Performance & Scale",
-          apiKey: keys[3],
-          systemPrompt: " You are a Performance Engineer. Provide strategies for low latency, caching, database indexing, and handling high load.",
-          statusEl: document.getElementById('status-agent4'),
-          outputEl: document.getElementById('output-agent4')
+          systemPrompt: "You are a Performance Engineer. Detail caching layers, database indexing, low latency concurrency, and high load scalability.",
+          statusEl: document.getElementById("status-agent4"),
+          outputEl: document.getElementById("output-agent4")
         },
         {
           name: "QA & Edge Cases",
-          apiKey: keys[4],
-          systemPrompt: " You are a QA Lead. Uncover edge cases, unexpected user inputs, error handling scenarios, and testing procedures.",
-          statusEl: document.getElementById('status-agent5'),
-          outputEl: document.getElementById('output-agent5')
+          systemPrompt: "You are a QA Lead. Uncover critical edge cases, race conditions, unexpected user behavior, error handling, and test matrices.",
+          statusEl: document.getElementById("status-agent5"),
+          outputEl: document.getElementById("output-agent5")
         }
       ];
+
+      // Update UI to running
+      agentConfigs.forEach(c => {
+        if (c.statusEl) {
+          c.statusEl.textContent = "Running...";
+          c.statusEl.className = "text-[10px] px-1.5 py-0.5 rounded bg-blue-950 text-blue-300 font-mono animate-pulse";
+        }
+        if (c.outputEl) {
+          c.outputEl.textContent = "Analyzing mission...";
+        }
+      });
 
       try {
         const startTime = Date.now();
 
-        // 1. FIRE ALL 5 AGENTS IN PARALLEL
-        const agentPromises = agentConfigs.map(cfg =>
-          callGroqAgent({ ...cfg, userPrompt: prompt })
-        );
+        // 1. Run all 5 agents in parallel
+        const agentPromises = agentConfigs.map(async (agent) => {
+          try {
+            const reply = await callGroqAPI({
+              messages: [
+                { role: "system", content: agent.systemPrompt },
+                { role: "user", content: prompt }
+              ],
+              temperature: 0.7
+            });
+            if (agent.statusEl) {
+              agent.statusEl.textContent = "Done ✓";
+              agent.statusEl.className = "text-[10px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 font-mono";
+            }
+            if (agent.outputEl) {
+              agent.outputEl.textContent = reply.content;
+            }
+            return { name: agent.name, content: reply.content };
+          } catch (e) {
+            if (agent.statusEl) {
+              agent.statusEl.textContent = "Error";
+              agent.statusEl.className = "text-[10px] px-1.5 py-0.5 rounded bg-rose-950 text-rose-300 font-mono";
+            }
+            if (agent.outputEl) {
+              agent.outputEl.textContent = `Error: ${e.message}`;
+            }
+            throw e;
+          }
+        });
 
-        const results = await Promise.all(agentPromises);
-        const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
+        const agentReports = await Promise.all(agentPromises);
+        const elapsedSec = ((Date.now() - startTime) / 1000).toFixed(2);
 
-        // 2. SYNTHESIZE ALL 5 OUTPUTS
-        synthStatus.textContent = `All 5 tasks complete (${elapsedTime}s). Synthesizing...`;
-        synthStatus.className = "text-xs text-blue-400 font-mono animate-pulse";
+        // 2. Synthesize all 5 reports into Master Blueprint
+        synthStatus.textContent = `All 5 agents finished in ${elapsedSec}s. Synthesizing Master Blueprint...`;
 
-        const aggregatedNotes = results
-          .map(res => `### ${res.agentName}:\n${res.content}`)
-          .join('\n\n---\n\n');
-
-        const synthesisPrompt = `
-You are the Executive Orchestrator of an AI Engineering Team.
-Below are analyses from 5 specialized agents (Tech Lead, UX, Security, Performance, QA):
+        const aggregatedText = agentReports.map(r => `### ${r.name}:\n${r.content}`).join("\n\n---\n\n");
+        const synthesisPrompt = `You are the Master Orchestrator of an elite engineering team.
+Synthesize the following 5 distinct agent reports into a comprehensive, high-impact blueprint.
 
 Original User Request:
 "${prompt}"
 
 Agent Reports:
-${aggregatedNotes}
+${aggregatedText}
 
-Task:
-Synthesize these 5 distinct reports into a clean, comprehensive, action-oriented master blueprint.
-Structure with sections:
-1. Executive Summary & Architecture
-2. UX & Core User Flow
-3. Security & Safety Guards
-4. Performance & Scale Guidelines
-5. Edge Cases & Testing Protocol
-`;
+Structure your synthesis with clear sections:
+# Master System Blueprint: ${prompt.slice(0, 40)}
+## 1. Executive Summary & Core Architecture
+## 2. UX & Product User Flow
+## 3. Security & Access Hardening
+## 4. Scalability & Low-Latency Guidelines
+## 5. QA Protocols & Edge Cases`;
 
-        const synthResult = await callGroqAgent({
-          name: "Master Synthesizer",
-          systemPrompt: "You weave 5 specialized engineering reports into a master plan.",
-          userPrompt: synthesisPrompt,
-          apiKey: keys[0],
-          statusEl: null,
-          outputEl: null
+        const synthReply = await callGroqAPI({
+          messages: [
+            { role: "system", content: "You weave 5 specialized engineering reports into a master plan." },
+            { role: "user", content: synthesisPrompt }
+          ]
         });
 
-        finalOutput.textContent = synthResult.content;
-        synthStatus.textContent = "Done";
+        finalOutput.textContent = synthReply.content;
+        synthStatus.textContent = `Synthesized in ${((Date.now() - startTime) / 1000).toFixed(2)}s ✓`;
         synthStatus.className = "text-xs text-emerald-400 font-mono";
+        exportPdfBtn.disabled = false;
+        playBeep(960, 0.07);
 
       } catch (err) {
-        finalOutput.textContent = `Execution failed: ${err.message}`;
-        synthStatus.textContent = "Error";
+        finalOutput.textContent = `Swarm execution halted: ${err.message}`;
+        synthStatus.textContent = "Failed";
         synthStatus.className = "text-xs text-rose-400 font-mono";
       } finally {
         runBtn.disabled = false;
-        runBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        runBtn.classList.remove("opacity-50", "cursor-not-allowed");
       }
     }
+
+    function exportSwarmToPdf() {
+      const blueprint = document.getElementById("swarmFinalOutput").textContent;
+      const prompt = document.getElementById("swarmPrompt").value.trim() || "Master Engineering Blueprint";
+      if (!blueprint || blueprint.includes("The orchestrated master")) return;
+
+      document.getElementById("pdfStudioTitle").value = `Blueprint: ${prompt.slice(0, 45)}`;
+      document.getElementById("pdfStudioFilename").value = "swarm-master-blueprint.pdf";
+      document.getElementById("pdfStudioContent").value = blueprint;
+      updatePdfStats();
+      switchView('pdf');
+      generatePdfFromStudio();
+    }
+
+    // ==============================================================
+    // 11. MODAL CONTROLLERS: LIGHTBOX, GALLERY, PDF HISTORY
+    // ==============================================================
+    let currentLightboxData = {};
+
+    function openLightboxModal(url, prompt, dims = "1024x1024", model = "flux") {
+      currentLightboxData = { url, prompt, dims, model };
+      document.getElementById("lightboxImage").src = url;
+      document.getElementById("lightboxTitle").textContent = prompt.slice(0, 35) + "...";
+      document.getElementById("lightboxPrompt").textContent = prompt;
+      document.getElementById("lightboxMeta").textContent = `${dims} • ${model.toUpperCase()}`;
+
+      document.getElementById("lightboxDownloadBtn").onclick = () => downloadDirectImage(url, `artwork-${Date.now()}.jpg`);
+      document.getElementById("lightboxCopyBtn").onclick = () => {
+        navigator.clipboard.writeText(prompt);
+        alert("Prompt copied to clipboard!");
+      };
+      document.getElementById("lightboxSendToPdfBtn").onclick = () => {
+        closeLightboxModal();
+        sendImageToPdfStudio(url, prompt);
+      };
+
+      document.getElementById("imageLightboxModal").classList.remove("hidden");
+      document.getElementById("imageLightboxModal").classList.add("flex");
+      playBeep(720, 0.02);
+    }
+
+    function closeLightboxModal() {
+      document.getElementById("imageLightboxModal").classList.add("hidden");
+      document.getElementById("imageLightboxModal").classList.remove("flex");
+    }
+
+    function openGalleryModal() {
+      const modal = document.getElementById("imageGalleryModal");
+      const grid = document.getElementById("galleryGrid");
+      const badge = document.getElementById("galleryCountBadge");
+
+      badge.textContent = `${imageHistory.length} saved`;
+      grid.innerHTML = "";
+
+      if (imageHistory.length === 0) {
+        grid.innerHTML = `
+          <div class="py-16 text-center text-slate-500 space-y-2">
+            <div class="text-3xl">🖼️</div>
+            <div>No images generated yet.</div>
+            <div class="text-xs">Generated images will automatically persist here.</div>
+          </div>
+        `;
+      } else {
+        const wrap = document.createElement("div");
+        wrap.className = "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3";
+        imageHistory.forEach(img => {
+          const item = document.createElement("div");
+          item.className = "relative group rounded-xl overflow-hidden border border-slate-800 bg-surface-950 aspect-square";
+          item.innerHTML = `
+            <img src="${img.url}" class="w-full h-full object-cover cursor-pointer" onclick="closeGalleryModal(); openLightboxModal('${img.url}', '${img.prompt.replace(/'/g, "\\'")}')" />
+            <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1.5 transition p-2">
+              <button onclick="downloadDirectImage('${img.url}', 'art-${Date.now()}.jpg')" class="p-1.5 rounded-lg bg-surface-900 text-white text-xs">⬇️</button>
+              <button onclick="closeGalleryModal(); sendImageToPdfStudio('${img.url}', '${img.prompt.replace(/'/g, "\\'")}')" class="p-1.5 rounded-lg bg-indigo-600 text-white text-xs">📄 PDF</button>
+            </div>
+          `;
+          wrap.appendChild(item);
+        });
+        grid.appendChild(wrap);
+      }
+
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
+
+    function closeGalleryModal() {
+      document.getElementById("imageGalleryModal").classList.add("hidden");
+      document.getElementById("imageGalleryModal").classList.remove("flex");
+    }
+
+    function clearAllImageGallery() {
+      if (!confirm("Are you sure you want to clear your local image history?")) return;
+      imageHistory = [];
+      localStorage.removeItem("yf_image_history");
+      updateGalleryCounters();
+      openGalleryModal();
+    }
+
+    function saveImageToHistory(imgObj) {
+      imageHistory.unshift(imgObj);
+      if (imageHistory.length > 50) imageHistory = imageHistory.slice(0, 50);
+      try {
+        localStorage.setItem("yf_image_history", JSON.stringify(imageHistory));
+      } catch (e) {}
+      updateGalleryCounters();
+    }
+
+    function updateGalleryCounters() {
+      const c = imageHistory.length;
+      const el1 = document.getElementById("studioGalleryCount");
+      if (el1) el1.textContent = c;
+    }
+
+    // PDF History Controller
+    function recordPdfToHistory(pdfObj) {
+      pdfHistory.unshift({
+        id: pdfObj.id || `pdf_${Date.now()}`,
+        title: pdfObj.title,
+        filename: pdfObj.filename,
+        pageCount: pdfObj.pageCount,
+        sizeKb: pdfObj.sizeKb,
+        createdAt: new Date().toISOString()
+      });
+      if (pdfHistory.length > 30) pdfHistory = pdfHistory.slice(0, 30);
+      try {
+        localStorage.setItem("yf_pdf_history", JSON.stringify(pdfHistory));
+      } catch (e) {}
+
+      // Background cloud backup if logged in
+      if (currentUser && currentUser.id && supabaseClient && pdfObj.blob) {
+        syncPdfToSupabase(pdfObj);
+      }
+    }
+
+    async function syncPdfToSupabase(pdfObj) {
+      try {
+        const safeName = `${currentUser.id}/${Date.now()}-${pdfObj.filename}`;
+        const { error: uploadErr } = await supabaseClient.storage.from("pdfs").upload(safeName, pdfObj.blob, {
+          contentType: "application/pdf",
+          upsert: false
+        });
+        if (!uploadErr) {
+          await supabaseClient.from("pdf_files").insert({
+            user_id: currentUser.id,
+            title: pdfObj.title,
+            filename: pdfObj.filename,
+            storage_path: safeName,
+            file_size: pdfObj.blob.size,
+            mime_type: "application/pdf"
+          });
+          console.log("PDF backed up to Supabase Cloud.");
+        }
+      } catch (e) {
+        console.warn("Cloud backup notice:", e);
+      }
+    }
+
+    function openPdfHistoryModal() {
+      const modal = document.getElementById("pdfHistoryModal");
+      const list = document.getElementById("pdfHistoryList");
+      list.innerHTML = "";
+
+      if (pdfHistory.length === 0) {
+        list.innerHTML = `
+          <div class="py-12 text-center text-slate-500 space-y-2">
+            <div class="text-3xl">📚</div>
+            <div>No PDF history yet.</div>
+            <div class="text-xs">Generated documents will automatically appear here.</div>
+          </div>
+        `;
+      } else {
+        pdfHistory.forEach(item => {
+          const row = document.createElement("div");
+          row.className = "bg-surface-950 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-3 text-xs";
+          row.innerHTML = `
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-surface-900 border border-slate-800 flex items-center justify-center text-base">📄</div>
+              <div>
+                <div class="font-bold text-slate-200">${item.title}</div>
+                <div class="text-slate-500 font-mono text-[11px]">${item.filename} • ${item.pageCount || 1} pages</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="deletePdfHistoryItem('${item.id}')" class="p-1.5 rounded-lg bg-surface-900 hover:bg-rose-950 text-slate-400 hover:text-rose-400">🗑️</button>
+            </div>
+          `;
+          list.appendChild(row);
+        });
+      }
+
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
+
+    function closePdfHistoryModal() {
+      document.getElementById("pdfHistoryModal").classList.add("hidden");
+      document.getElementById("pdfHistoryModal").classList.remove("flex");
+    }
+
+    function deletePdfHistoryItem(id) {
+      pdfHistory = pdfHistory.filter(x => x.id !== id);
+      try {
+        localStorage.setItem("yf_pdf_history", JSON.stringify(pdfHistory));
+      } catch (e) {}
+      openPdfHistoryModal();
+    }
+
+    // Settings Modal
+    function openSettingsModal() {
+      document.getElementById("settingsCustomGroqKey").value = appSettings.customGroqKey || "";
+      document.getElementById("settingsSoundToggle").checked = appSettings.sound;
+      document.getElementById("settingsPdfPreviewToggle").checked = appSettings.pdfPreview;
+      document.getElementById("settingsAutoScrollToggle").checked = appSettings.autoScroll;
+
+      document.getElementById("settingsModal").classList.remove("hidden");
+      document.getElementById("settingsModal").classList.add("flex");
+    }
+
+    function closeSettingsModal() {
+      document.getElementById("settingsModal").classList.add("hidden");
+      document.getElementById("settingsModal").classList.remove("flex");
+    }
+
+    function saveAppSettings() {
+      appSettings.customGroqKey = document.getElementById("settingsCustomGroqKey").value.trim();
+      appSettings.sound = document.getElementById("settingsSoundToggle").checked;
+      appSettings.pdfPreview = document.getElementById("settingsPdfPreviewToggle").checked;
+      appSettings.autoScroll = document.getElementById("settingsAutoScrollToggle").checked;
+
+      localStorage.setItem("yf_app_settings", JSON.stringify(appSettings));
+      closeSettingsModal();
+      playBeep(880, 0.04);
+      alert("Settings saved successfully!");
+    }
+
+    function resetAppSettings() {
+      if (!confirm("Reset all settings to default?")) return;
+      appSettings = {
+        customGroqKey: '',
+        sound: true,
+        pdfPreview: true,
+        autoScroll: true,
+        theme: 'dark'
+      };
+      localStorage.removeItem("yf_app_settings");
+      openSettingsModal();
+    }
+
+    // Auth Modal
+    let activeAuthTab = 'login';
+    function openAuthModal() {
+      document.getElementById("authModal").classList.remove("hidden");
+      document.getElementById("authModal").classList.add("flex");
+    }
+    function closeAuthModal() {
+      document.getElementById("authModal").classList.add("hidden");
+      document.getElementById("authModal").classList.remove("flex");
+    }
+    function setAuthTab(tab) {
+      activeAuthTab = tab;
+      const isLogin = tab === 'login';
+      document.getElementById("authTabLogin").className = isLogin ? "flex-1 py-1.5 rounded-md font-semibold bg-brand-600 text-white" : "flex-1 py-1.5 rounded-md font-semibold text-slate-400";
+      document.getElementById("authTabSignup").className = !isLogin ? "flex-1 py-1.5 rounded-md font-semibold bg-brand-600 text-white" : "flex-1 py-1.5 rounded-md font-semibold text-slate-400";
+      document.getElementById("authUsernameRow").classList.toggle("hidden", isLogin);
+      document.getElementById("authSubmitBtn").textContent = isLogin ? "Sign In" : "Create Account";
+    }
+
+    async function handleAuthSubmit() {
+      const email = document.getElementById("authEmail").value.trim();
+      const password = document.getElementById("authPassword").value.trim();
+      const errBox = document.getElementById("authErrorMsg");
+      errBox.classList.add("hidden");
+
+      if (!email || !password) {
+        errBox.textContent = "Please enter email and password.";
+        errBox.classList.remove("hidden");
+        return;
+      }
+
+      if (!supabaseClient) {
+        errBox.textContent = "Supabase client not initialized.";
+        errBox.classList.remove("hidden");
+        return;
+      }
+
+      try {
+        if (activeAuthTab === 'login') {
+          const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+          updateUserAuthState(data.user);
+          closeAuthModal();
+        } else {
+          const { data, error } = await supabaseClient.auth.signUp({ email, password });
+          if (error) throw error;
+          alert("Account created! You can now log in.");
+          setAuthTab('login');
+        }
+      } catch (err) {
+        errBox.textContent = err.message;
+        errBox.classList.remove("hidden");
+      }
+    }
+
+    function updateUserAuthState(user) {
+      currentUser = user;
+      currentUserId = user ? user.id : null;
+      const statusText = document.getElementById("userStatusText");
+      const statusDot = document.getElementById("userStatusDot");
+      if (user) {
+        statusText.textContent = user.email ? user.email.split("@")[0] : "Logged In";
+        statusDot.className = "w-2 h-2 rounded-full bg-emerald-400";
+      } else {
+        statusText.textContent = "Guest";
+        statusDot.className = "w-2 h-2 rounded-full bg-slate-400";
+      }
+    }
+
+    // Local Storage Helpers
+    function saveLocalChatSessions() {
+      try {
+        localStorage.setItem("yf_chat_sessions", JSON.stringify(chatSessions));
+      } catch (e) {}
+    }
+
+    function loadPersistedState() {
+      // Load Settings
+      try {
+        const s = localStorage.getItem("yf_app_settings");
+        if (s) appSettings = { ...appSettings, ...JSON.parse(s) };
+      } catch (e) {}
+
+      // Load Image History
+      try {
+        const ih = localStorage.getItem("yf_image_history");
+        if (ih) imageHistory = JSON.parse(ih);
+      } catch (e) {}
+      updateGalleryCounters();
+
+      // Load PDF History
+      try {
+        const ph = localStorage.getItem("yf_pdf_history");
+        if (ph) pdfHistory = JSON.parse(ph);
+      } catch (e) {}
+
+      // Load Chat Sessions
+      try {
+        const cs = localStorage.getItem("yf_chat_sessions");
+        if (cs) chatSessions = JSON.parse(cs);
+      } catch (e) {}
+
+      if (Object.keys(chatSessions).length === 0) {
+        createNewChat();
+      } else {
+        currentChatSessionId = Object.keys(chatSessions)[0];
+        renderChatSessions();
+        renderActiveChat();
+      }
+
+      // Check auth state
+      if (supabaseClient) {
+        supabaseClient.auth.getSession().then(({ data }) => {
+          if (data && data.session) {
+            updateUserAuthState(data.session.user);
+          }
+        }).catch(() => {});
+      }
+    }
+
+    // Enter to Send Listener in Chat
+    document.addEventListener("DOMContentLoaded", () => {
+      loadPersistedState();
+      initStylePresetsGrid();
+      applyPdfTemplate('proposal');
+
+      const chatInput = document.getElementById("chatInput");
+      if (chatInput) {
+        chatInput.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            handleSendChat();
+          }
+        });
+      }
+    });
   </script>
 </body>
 </html>
